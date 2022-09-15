@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Security.Cryptography;
 using System.Text;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Momento.Sdk;
 using Momento.Sdk.Exceptions;
@@ -100,12 +101,15 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
 
         private readonly ILogger<CsharpLoadGenerator> _logger;
         private readonly CsharpLoadGeneratorOptions _options;
+        private readonly string _cacheValue;
 
         public CsharpLoadGenerator(ILoggerFactory loggerFactory, CsharpLoadGeneratorOptions options)
         {
             _logger = loggerFactory.CreateLogger<CsharpLoadGenerator>();
 
             _options = options;
+
+            _cacheValue = new String('x', _options.cacheItemPayloadBytes);
         }
 
 
@@ -382,7 +386,12 @@ cumulative set latencies:
 
         private async Task<int> IssueAsyncSetGet(SimpleCacheClient client, CsharpLoadGeneratorContext context, int workerId, int operationId)
         {
-            _logger.LogInformation("ISSUING ASYNC GET SET FOR WORKER {0} OP {1}", workerId, operationId);
+            var cacheKey = $"worker{workerId}operation{operationId}";
+            var setStartTime = System.Diagnostics.Stopwatch.StartNew();
+            var result = await ExecuteRequestAndUpdateContextCounts(
+                context,
+                () => client.SetAsync(CACHE_NAME, cacheKey, _cacheValue)
+                );
             return 1;
         }
 
@@ -395,6 +404,16 @@ cumulative set latencies:
         //    this.updateContextCountsForRequest(context, result);
         //    return response;
         //}
+
+        private async Task<TResult> ExecuteRequestAndUpdateContextCounts<TResult>(
+            CsharpLoadGeneratorContext context,
+            Func<Task<TResult>> block
+            )
+        {
+            var result = await ExecuteRequest(block);
+            UpdateContextCountsForRequest(context, result.Item1);
+            return result.Item2;
+        }
 
         //private async executeRequest<T>(
         //  block: () => Promise<T>
@@ -450,6 +469,33 @@ cumulative set latencies:
         //    }
         //}
 
+        private async Task<Tuple<string, T?>> ExecuteRequest<T>(
+            Func<Task<T>> block
+            )
+        {
+            try
+            {
+                T result = await block();
+                return Tuple.Create("TODO SUCCESS", (T?) result);
+            }
+            catch (InternalServerException e)
+            {
+                var innerException = e.InnerException as RpcException;
+                _logger.LogInformation("CAUGHT AN EXCEPTION WHILE EXECUTING REQUEST: {0}", innerException);
+                switch (innerException!.StatusCode)
+                {
+
+                    case StatusCode.Unavailable:
+                        return Tuple.Create<string, T?>("TODO UNAVAILABLE", default(T));
+                    default:
+                        throw e;
+                }
+            } catch (Exception e) {
+                _logger.LogInformation("CAUGHT AN EXCEPTION WHILE EXECUTING REQUEST: {0}", e);
+                throw e;
+            }
+        }
+
         //private updateContextCountsForRequest(
         //  context: BasicJavasScriptLoadGenContext,
         //    result: AsyncSetGetResult
@@ -477,6 +523,15 @@ cumulative set latencies:
         //            break;
         //    }
         //}
+
+        private static void UpdateContextCountsForRequest(
+            CsharpLoadGeneratorContext context,
+            string todoResult
+            )
+        {
+            Console.WriteLine("SHOULD BE UPDATING CONTEXT COUNTS");
+        }
+
 
         //private static tps(
         //  context: BasicJavasScriptLoadGenContext,
