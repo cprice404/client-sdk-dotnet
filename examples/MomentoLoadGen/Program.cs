@@ -52,6 +52,14 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
         int totalNumberOfOperationsToExecute
     );
 
+    enum AsyncSetGetResult
+    {
+        SUCCESS,
+        UNAVAILABLE,
+        DEADLINE_EXCEEDED,
+        RESOURCE_EXHAUSTED,
+        RST_STREAM
+    };
 
     //enum AsyncSetGetResult
     //{
@@ -78,19 +86,33 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
     //  globalRstStreamCount: number;
     //}
 
-    internal record CsharpLoadGeneratorContext
-    (
-        Stopwatch startTime,
-        string getLatencies,
-        string setLatencies,
+    internal class CsharpLoadGeneratorContext
+    {
+        public Stopwatch StartTime;
+        public string GetLatencies;
+        public string SetLatencies;
 
-        int globalRequestCount,
-        int globalSuccessCount,
-        int globalUnavailableCount,
-        int globalDeadlineExceededCount,
-        int globalResourceExhaustedCount,
-        int globalRstStreamCount
-    );
+        public int GlobalRequestCount;
+        public int GlobalSuccessCount;
+        public int GlobalUnavailableCount;
+        public int GlobalDeadlineExceededCount;
+        public int GlobalResourceExhaustedCount;
+        public int GlobalRstStreamCount;
+
+        public CsharpLoadGeneratorContext()
+        {
+            StartTime = System.Diagnostics.Stopwatch.StartNew();
+            GetLatencies = "TODO ADD HISTOGRAM";
+            SetLatencies = "TODO ADD HISTOGRAM";
+
+            GlobalRequestCount = 0;
+            GlobalSuccessCount = 0;
+            GlobalDeadlineExceededCount = 0;
+            GlobalResourceExhaustedCount = 0;
+            GlobalRstStreamCount = 0;
+            GlobalUnavailableCount = 0;
+        }
+    };
 
 
     public class CsharpLoadGenerator
@@ -182,18 +204,7 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
 
             var numOperationsPerWorker = _options.totalNumberOfOperationsToExecute / _options.numberOfConcurrentRequests;
 
-            var context = new CsharpLoadGeneratorContext(
-                startTime: System.Diagnostics.Stopwatch.StartNew(),
-                getLatencies: "TODO ADD HISTOGRAM",
-                setLatencies: "TODO ADD HISTOGRAM",
-
-                globalRequestCount: 0,
-                globalSuccessCount: 0,
-                globalDeadlineExceededCount: 0,
-                globalResourceExhaustedCount: 0,
-                globalRstStreamCount: 0,
-                globalUnavailableCount: 0
-            );
+            var context = new CsharpLoadGeneratorContext();
 
 
             var asyncResults = Enumerable.Range(0, _options.numberOfConcurrentRequests).Select<int, Task<int>>(workerId =>
@@ -306,26 +317,26 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
             {
                 await IssueAsyncSetGet(client, context, workerId, i);
 
-                _logger.LogInformation("ABOUT TO CHECK IF WE NEED TO PRINT STATS");
-                if (context.globalRequestCount % PRINT_STATS_EVERY_N_REQUESTS == 0) {
-                    _logger.LogInformation("WE NEED TO PRINT STATS");
-                    _logger.LogInformation($@"
+                //_logger.LogInformation("ABOUT TO CHECK IF WE NEED TO PRINT STATS");
+                if (context.GlobalRequestCount % PRINT_STATS_EVERY_N_REQUESTS == 0) {
+                    //_logger.LogInformation("WE NEED TO PRINT STATS");
+                    Console.WriteLine($@"
 cumulative stats:
-        total requests: {context.globalRequestCount} ({Tps(context, context.globalRequestCount)} tps)
-               success: {context.globalSuccessCount} ({PercentRequests(context, context.globalSuccessCount)}%) ({Tps(context,context.globalSuccessCount)} tps)
-           unavailable: {context.globalUnavailableCount} ({PercentRequests(context, context.globalUnavailableCount)}%)
-     deadline exceeded: {context.globalDeadlineExceededCount} ({PercentRequests(context, context.globalDeadlineExceededCount)}%)
-    resource exhausted: {context.globalResourceExhaustedCount} ({PercentRequests(context, context.globalResourceExhaustedCount)}%)
-            rst stream: {context.globalRstStreamCount} ({PercentRequests(context, context.globalRstStreamCount)}%)
+        total requests: {context.GlobalRequestCount} ({Tps(context, context.GlobalRequestCount)} tps)
+               success: {context.GlobalSuccessCount} ({PercentRequests(context, context.GlobalSuccessCount)}%) ({Tps(context,context.GlobalSuccessCount)} tps)
+           unavailable: {context.GlobalUnavailableCount} ({PercentRequests(context, context.GlobalUnavailableCount)}%)
+     deadline exceeded: {context.GlobalDeadlineExceededCount} ({PercentRequests(context, context.GlobalDeadlineExceededCount)}%)
+    resource exhausted: {context.GlobalResourceExhaustedCount} ({PercentRequests(context, context.GlobalResourceExhaustedCount)}%)
+            rst stream: {context.GlobalRstStreamCount} ({PercentRequests(context, context.GlobalRstStreamCount)}%)
 
 cumulative set latencies:
-{ OutputHistogramSummary(context.setLatencies)}
+{ OutputHistogramSummary(context.SetLatencies)}
 
     cumulative get latencies:
-{ OutputHistogramSummary(context.getLatencies)}
+{ OutputHistogramSummary(context.GetLatencies)}
 
 ");
-                    _logger.LogInformation("PRINTED STATS");
+                    //_logger.LogInformation("PRINTED STATS");
                 };
                 
             }
@@ -392,6 +403,41 @@ cumulative set latencies:
                 context,
                 () => client.SetAsync(CACHE_NAME, cacheKey, _cacheValue)
                 );
+            if (result != null)
+            {
+                var setDuration = setStartTime.ElapsedMilliseconds;
+                _logger.LogInformation("TODO UPDATE SET HISTOGRAM");
+            }
+
+            var getStartTime = System.Diagnostics.Stopwatch.StartNew();
+            var getResult = await ExecuteRequestAndUpdateContextCounts(
+                context,
+                () => client.GetAsync(CACHE_NAME, cacheKey)
+                );
+
+            if (getResult != null)
+            {
+                var ketDuration = getStartTime.ElapsedMilliseconds;
+                _logger.LogInformation("TODO UPDATE GET HISTOGRAM");
+
+                string valueString;
+
+                if (getResult.Status == Momento.Sdk.Responses.CacheGetStatus.HIT)
+                {
+                    string value = getResult.String()!;
+                    valueString = $"{value.Substring(0, 10)}... (len: {value.Length})";
+                }
+                else
+                {
+                    valueString = "n/a";
+                }
+
+                if (context.GlobalRequestCount % 1000 == 0)
+                {
+                    _logger.LogInformation($"worker: {workerId}, worker request: {operationId}, global request: {context.GlobalRequestCount}, status: ${getResult.Status}, val: ${valueString}");
+                }
+            }
+
             return 1;
         }
 
@@ -469,14 +515,14 @@ cumulative set latencies:
         //    }
         //}
 
-        private async Task<Tuple<string, T?>> ExecuteRequest<T>(
+        private async Task<Tuple<AsyncSetGetResult, T?>> ExecuteRequest<T>(
             Func<Task<T>> block
             )
         {
             try
             {
                 T result = await block();
-                return Tuple.Create("TODO SUCCESS", (T?) result);
+                return Tuple.Create(AsyncSetGetResult.SUCCESS, (T?) result);
             }
             catch (InternalServerException e)
             {
@@ -486,7 +532,7 @@ cumulative set latencies:
                 {
 
                     case StatusCode.Unavailable:
-                        return Tuple.Create<string, T?>("TODO UNAVAILABLE", default(T));
+                        return Tuple.Create(AsyncSetGetResult.UNAVAILABLE, default(T));
                     default:
                         throw e;
                 }
@@ -526,10 +572,20 @@ cumulative set latencies:
 
         private static void UpdateContextCountsForRequest(
             CsharpLoadGeneratorContext context,
-            string todoResult
+            AsyncSetGetResult result
             )
         {
-            Console.WriteLine("SHOULD BE UPDATING CONTEXT COUNTS");
+            Interlocked.Increment(ref context.GlobalRequestCount);
+            var updated = result switch
+            {
+                AsyncSetGetResult.SUCCESS => Interlocked.Increment(ref context.GlobalSuccessCount),
+                AsyncSetGetResult.UNAVAILABLE => Interlocked.Increment(ref context.GlobalUnavailableCount),
+                AsyncSetGetResult.DEADLINE_EXCEEDED => Interlocked.Increment(ref context.GlobalDeadlineExceededCount),
+                AsyncSetGetResult.RESOURCE_EXHAUSTED => Interlocked.Increment(ref context.GlobalResourceExhaustedCount),
+                AsyncSetGetResult.RST_STREAM => Interlocked.Increment(ref context.GlobalRstStreamCount),
+                _ => throw new Exception($"Unrecognized result: {result}"),
+            };
+            return;
         }
 
 
@@ -546,7 +602,7 @@ cumulative set latencies:
 
         private static double Tps(CsharpLoadGeneratorContext context, int requestCount)
         {
-            return Math.Round((requestCount * 1000.0) / context.startTime.ElapsedMilliseconds);
+            return Math.Round((requestCount * 1000.0) / context.StartTime.ElapsedMilliseconds);
         }
 
         //private static percentRequests(
@@ -561,11 +617,11 @@ cumulative set latencies:
 
         private static string PercentRequests(CsharpLoadGeneratorContext context, int count)
         {
-            if (context.globalRequestCount == 0)
+            if (context.GlobalRequestCount == 0)
             {
                 return "0";
             }
-            return Math.Round((count / context.globalRequestCount) * 100.0, 1).ToString();
+            return Math.Round((count / context.GlobalRequestCount) * 100.0, 1).ToString();
             //return "FOO";
         }
 
