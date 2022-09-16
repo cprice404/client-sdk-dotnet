@@ -120,7 +120,8 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
     {
         const int CACHE_ITEM_TTL_SECONDS = 60;
         const string CACHE_NAME = "momento-loadgen";
-        const int PRINT_STATS_EVERY_N_REQUESTS = 1000;
+        const int NUM_REQUESTS_PER_OPERATION = 2;
+        const int PRINT_STATS_EVERY_N_REQUESTS = 5000;
 
         private readonly ILogger<CsharpLoadGenerator> _logger;
         private readonly CsharpLoadGeneratorOptions _options;
@@ -204,6 +205,7 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
             
 
             var numOperationsPerWorker = _options.totalNumberOfOperationsToExecute / _options.numberOfConcurrentRequests;
+            var totalNumRequestsExpected = _options.totalNumberOfOperationsToExecute * NUM_REQUESTS_PER_OPERATION;
 
             var context = new CsharpLoadGeneratorContext();
 
@@ -217,7 +219,11 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
                     )
             );
 
+            var statsPrinterTask = LaunchStatsPrinterTask(context, totalNumRequestsExpected);
+
             var allResults = await Task.WhenAll(asyncResults);
+
+            await statsPrinterTask;
             _logger.LogInformation("Done");
         }
 
@@ -313,59 +319,122 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
             int workerId,
             int numOperations)
         {
-            for (var i = 1; i < numOperations; i++)
+            for (var i = 1; i <= numOperations; i++)
             {
                 await IssueAsyncSetGet(client, context, workerId, i);
 
                 //_logger.LogInformation("ABOUT TO CHECK IF WE NEED TO PRINT STATS");
-                if (context.GlobalRequestCount % PRINT_STATS_EVERY_N_REQUESTS == 0) {
-                    //_logger.LogInformation("WE NEED TO PRINT STATS");
-                    var setsHistogram = context.SetLatencies.GetIntervalHistogram();
-                    Console.WriteLine($"Sets histogram count: {setsHistogram.TotalCount}, bucket count: {setsHistogram.BucketCount}");
-                    var getsHistogram = context.GetLatencies.GetIntervalHistogram();
-                    Console.WriteLine($"Gets histogram count: {getsHistogram.TotalCount}, bucket count: {getsHistogram.BucketCount}");
-                    Console.Out.Flush();
-                    try
-                    {
-                        Console.WriteLine("Getting p50");
-                        Console.Out.Flush();
-                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(50)}");
-                        Console.WriteLine("Getting p90");
-                        Console.Out.Flush();
-                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(90)}");
-                        Console.WriteLine("Getting p99");
-                        Console.Out.Flush();
-                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99)}");
-                        Console.WriteLine("Getting p99.9");
-                        Console.Out.Flush();
-                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99.9)}");
-                    } catch (ArgumentOutOfRangeException ex)
-                    {
-                        Console.WriteLine("\n\nCAUGHT THE WEIRD HISTOGRAM EXCEPTION!!!!\n\n");
-                    }
-                    //                    Console.Out.Flush();
+                //    if (context.GlobalRequestCount % PRINT_STATS_EVERY_N_REQUESTS == 0) {
+                //        //_logger.LogInformation("WE NEED TO PRINT STATS");
+                //        var setsHistogram = context.SetLatencies.GetIntervalHistogram();
+                //        Console.WriteLine($"Sets histogram count: {setsHistogram.TotalCount}, bucket count: {setsHistogram.BucketCount}");
+                //        var getsHistogram = context.GetLatencies.GetIntervalHistogram();
+                //        Console.WriteLine($"Gets histogram count: {getsHistogram.TotalCount}, bucket count: {getsHistogram.BucketCount}");
+                //        Console.Out.Flush();
+                //        try
+                //        {
+                //            Console.WriteLine("Getting p50");
+                //            Console.Out.Flush();
+                //            Console.WriteLine($"{getsHistogram.GetValueAtPercentile(50)}");
+                //            Console.WriteLine("Getting p90");
+                //            Console.Out.Flush();
+                //            Console.WriteLine($"{getsHistogram.GetValueAtPercentile(90)}");
+                //            Console.WriteLine("Getting p99");
+                //            Console.Out.Flush();
+                //            Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99)}");
+                //            Console.WriteLine("Getting p99.9");
+                //            Console.Out.Flush();
+                //            Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99.9)}");
+                //        } catch (ArgumentOutOfRangeException ex)
+                //        {
+                //            Console.WriteLine("\n\nCAUGHT THE WEIRD HISTOGRAM EXCEPTION!!!!\n\n");
+                //        }
+                //        //                    Console.Out.Flush();
 
-                    //                    Console.WriteLine($@"
-                    //cumulative stats:
-                    //        total requests: {context.GlobalRequestCount} ({Tps(context, context.GlobalRequestCount)} tps)
-                    //               success: {context.GlobalSuccessCount} ({PercentRequests(context, context.GlobalSuccessCount)}%) ({Tps(context,context.GlobalSuccessCount)} tps)
-                    //           unavailable: {context.GlobalUnavailableCount} ({PercentRequests(context, context.GlobalUnavailableCount)}%)
-                    //     deadline exceeded: {context.GlobalDeadlineExceededCount} ({PercentRequests(context, context.GlobalDeadlineExceededCount)}%)
-                    //    resource exhausted: {context.GlobalResourceExhaustedCount} ({PercentRequests(context, context.GlobalResourceExhaustedCount)}%)
-                    //            rst stream: {context.GlobalRstStreamCount} ({PercentRequests(context, context.GlobalRstStreamCount)}%)
+                //        //                    Console.WriteLine($@"
+                //        //cumulative stats:
+                //        //        total requests: {context.GlobalRequestCount} ({Tps(context, context.GlobalRequestCount)} tps)
+                //        //               success: {context.GlobalSuccessCount} ({PercentRequests(context, context.GlobalSuccessCount)}%) ({Tps(context,context.GlobalSuccessCount)} tps)
+                //        //           unavailable: {context.GlobalUnavailableCount} ({PercentRequests(context, context.GlobalUnavailableCount)}%)
+                //        //     deadline exceeded: {context.GlobalDeadlineExceededCount} ({PercentRequests(context, context.GlobalDeadlineExceededCount)}%)
+                //        //    resource exhausted: {context.GlobalResourceExhaustedCount} ({PercentRequests(context, context.GlobalResourceExhaustedCount)}%)
+                //        //            rst stream: {context.GlobalRstStreamCount} ({PercentRequests(context, context.GlobalRstStreamCount)}%)
 
-                    //cumulative set latencies:
-                    //{ OutputHistogramSummary(setsHistogram)}
+                //        //cumulative set latencies:
+                //        //{ OutputHistogramSummary(setsHistogram)}
 
-                    //    cumulative get latencies:
-                    //{ OutputHistogramSummary(getsHistogram)}
+                //        //    cumulative get latencies:
+                //        //{ OutputHistogramSummary(getsHistogram)}
 
-                    //");
-                    //_logger.LogInformation("PRINTED STATS");
-                };
-                
+                //        //");
+                //        //_logger.LogInformation("PRINTED STATS");
+                //    };
+
             }
             return numOperations;
+        }
+
+        private async Task LaunchStatsPrinterTask(CsharpLoadGeneratorContext context, int totalNumRequests)
+        {
+            var setsAccumulatingHistogram = new LongHistogram(TimeStamp.Minutes(1), 1);
+            var getsAccumulatingHistogram = new LongHistogram(TimeStamp.Minutes(1), 1);
+
+            var nextStatsUpdateRequestCount = PRINT_STATS_EVERY_N_REQUESTS;
+            while (context.GlobalRequestCount < totalNumRequests)
+            {
+                //_logger.LogInformation($"STATS PRINTER WAITING FOR {totalNumRequests} (current count: {context.GlobalRequestCount})");
+                //_logger.LogInformation("STATS PRINTER SLEEPING");
+                if (context.GlobalRequestCount >= nextStatsUpdateRequestCount)
+                {
+                    nextStatsUpdateRequestCount += PRINT_STATS_EVERY_N_REQUESTS;
+                    PrintStats(setsAccumulatingHistogram, getsAccumulatingHistogram, context);
+                }
+
+                await Task.Delay(500);
+            }
+            PrintStats(setsAccumulatingHistogram, getsAccumulatingHistogram, context);
+        }
+
+        private void PrintStats(LongHistogram setsAccumulatingHistogram, LongHistogram getsAccumulatingHistogram, CsharpLoadGeneratorContext context)
+        {
+            var setsIntervalHistogram = context.SetLatencies.GetIntervalHistogram();
+            setsAccumulatingHistogram.Add(setsIntervalHistogram);
+            //Console.WriteLine($"Sets histogram count: {setsAccumulatingHistogram.TotalCount}, bucket count: {setsAccumulatingHistogram.BucketCount}");
+            var getsIntervalHistogram = context.GetLatencies.GetIntervalHistogram();
+            getsAccumulatingHistogram.Add(getsIntervalHistogram);
+            //Console.WriteLine($"Gets histogram count: {getsAccumulatingHistogram.TotalCount}, bucket count: {getsAccumulatingHistogram.BucketCount}");
+            //Console.Out.Flush();
+            //try
+            //{
+            //Console.WriteLine("Getting p50");
+            //Console.Out.Flush();
+            //Console.WriteLine($"{getsHistogram.GetValueAtPercentile(50)}");
+            //Console.WriteLine("Getting p90");
+            //Console.Out.Flush();
+            //Console.WriteLine($"{getsHistogram.GetValueAtPercentile(90)}");
+            //Console.WriteLine("Getting p99");
+            //Console.Out.Flush();
+            //Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99)}");
+            //Console.WriteLine("Getting p99.9");
+            //Console.Out.Flush();
+            //Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99.9)}");
+
+            Console.WriteLine($@"
+cumulative stats:
+        total requests: {context.GlobalRequestCount} ({Tps(context, context.GlobalRequestCount)} tps)
+                success: {context.GlobalSuccessCount} ({PercentRequests(context, context.GlobalSuccessCount)}%) ({Tps(context, context.GlobalSuccessCount)} tps)
+            unavailable: {context.GlobalUnavailableCount} ({PercentRequests(context, context.GlobalUnavailableCount)}%)
+        deadline exceeded: {context.GlobalDeadlineExceededCount} ({PercentRequests(context, context.GlobalDeadlineExceededCount)}%)
+    resource exhausted: {context.GlobalResourceExhaustedCount} ({PercentRequests(context, context.GlobalResourceExhaustedCount)}%)
+            rst stream: {context.GlobalRstStreamCount} ({PercentRequests(context, context.GlobalRstStreamCount)}%)
+
+cumulative set latencies:
+{OutputHistogramSummary(setsAccumulatingHistogram)}
+
+cumulative get latencies:
+{OutputHistogramSummary(getsAccumulatingHistogram)}
+
+");
         }
 
 
@@ -457,7 +526,7 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
                     valueString = "n/a";
                 }
 
-                if (context.GlobalRequestCount % 1000 == 0)
+                if (context.GlobalRequestCount % PRINT_STATS_EVERY_N_REQUESTS == 0)
                 {
                     _logger.LogInformation($"worker: {workerId}, worker request: {operationId}, global request: {context.GlobalRequestCount}, status: ${getResult.Status}, val: ${valueString}");
                 }
@@ -552,7 +621,7 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
             catch (InternalServerException e)
             {
                 var innerException = e.InnerException as RpcException;
-                _logger.LogInformation("CAUGHT AN EXCEPTION WHILE EXECUTING REQUEST: {0}", innerException);
+                _logger.LogWarning("CAUGHT AN EXCEPTION WHILE EXECUTING REQUEST: {0}", innerException);
                 switch (innerException!.StatusCode)
                 {
 
@@ -562,7 +631,7 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
                         throw e;
                 }
             } catch (Exception e) {
-                _logger.LogInformation("CAUGHT AN EXCEPTION WHILE EXECUTING REQUEST: {0}", e);
+                _logger.LogError("CAUGHT AN EXCEPTION WHILE EXECUTING REQUEST: {0}", e);
                 throw e;
             }
         }
