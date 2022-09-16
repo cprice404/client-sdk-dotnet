@@ -90,8 +90,8 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
     internal class CsharpLoadGeneratorContext
     {
         public Stopwatch StartTime;
-        public LongConcurrentHistogram GetLatencies;
-        public LongConcurrentHistogram SetLatencies;
+        public Recorder GetLatencies;
+        public Recorder SetLatencies;
 
         public int GlobalRequestCount;
         public int GlobalSuccessCount;
@@ -103,8 +103,8 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
         public CsharpLoadGeneratorContext()
         {
             StartTime = System.Diagnostics.Stopwatch.StartNew();
-            GetLatencies = new LongConcurrentHistogram(1, TimeStamp.Minutes(1), 1);
-            SetLatencies = new LongConcurrentHistogram(1, TimeStamp.Minutes(1), 1);
+            GetLatencies = HistogramFactory.With64BitBucketSize().WithValuesFrom(1).WithValuesUpTo(TimeStamp.Minutes(1)).WithPrecisionOf(1).WithThreadSafeWrites().WithThreadSafeReads().Create();
+            SetLatencies = HistogramFactory.With64BitBucketSize().WithValuesFrom(1).WithValuesUpTo(TimeStamp.Minutes(1)).WithPrecisionOf(1).WithThreadSafeWrites().WithThreadSafeReads().Create();
 
             GlobalRequestCount = 0;
             GlobalSuccessCount = 0;
@@ -218,8 +218,7 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
             );
 
             var allResults = await Task.WhenAll(asyncResults);
-            _logger.LogInformation("ALL RESULTS: {0}", allResults);
-            _logger.LogInformation("DONE");
+            _logger.LogInformation("Done");
         }
 
         //const loadGenContext: BasicJavasScriptLoadGenContext = {
@@ -321,22 +320,47 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
                 //_logger.LogInformation("ABOUT TO CHECK IF WE NEED TO PRINT STATS");
                 if (context.GlobalRequestCount % PRINT_STATS_EVERY_N_REQUESTS == 0) {
                     //_logger.LogInformation("WE NEED TO PRINT STATS");
-                    Console.WriteLine($@"
-cumulative stats:
-        total requests: {context.GlobalRequestCount} ({Tps(context, context.GlobalRequestCount)} tps)
-               success: {context.GlobalSuccessCount} ({PercentRequests(context, context.GlobalSuccessCount)}%) ({Tps(context,context.GlobalSuccessCount)} tps)
-           unavailable: {context.GlobalUnavailableCount} ({PercentRequests(context, context.GlobalUnavailableCount)}%)
-     deadline exceeded: {context.GlobalDeadlineExceededCount} ({PercentRequests(context, context.GlobalDeadlineExceededCount)}%)
-    resource exhausted: {context.GlobalResourceExhaustedCount} ({PercentRequests(context, context.GlobalResourceExhaustedCount)}%)
-            rst stream: {context.GlobalRstStreamCount} ({PercentRequests(context, context.GlobalRstStreamCount)}%)
+                    var setsHistogram = context.SetLatencies.GetIntervalHistogram();
+                    Console.WriteLine($"Sets histogram count: {setsHistogram.TotalCount}, bucket count: {setsHistogram.BucketCount}");
+                    var getsHistogram = context.GetLatencies.GetIntervalHistogram();
+                    Console.WriteLine($"Gets histogram count: {getsHistogram.TotalCount}, bucket count: {getsHistogram.BucketCount}");
+                    Console.Out.Flush();
+                    try
+                    {
+                        Console.WriteLine("Getting p50");
+                        Console.Out.Flush();
+                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(50)}");
+                        Console.WriteLine("Getting p90");
+                        Console.Out.Flush();
+                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(90)}");
+                        Console.WriteLine("Getting p99");
+                        Console.Out.Flush();
+                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99)}");
+                        Console.WriteLine("Getting p99.9");
+                        Console.Out.Flush();
+                        Console.WriteLine($"{getsHistogram.GetValueAtPercentile(99.9)}");
+                    } catch (ArgumentOutOfRangeException ex)
+                    {
+                        Console.WriteLine("\n\nCAUGHT THE WEIRD HISTOGRAM EXCEPTION!!!!\n\n");
+                    }
+                    //                    Console.Out.Flush();
 
-cumulative set latencies:
-{ OutputHistogramSummary(context.SetLatencies)}
+                    //                    Console.WriteLine($@"
+                    //cumulative stats:
+                    //        total requests: {context.GlobalRequestCount} ({Tps(context, context.GlobalRequestCount)} tps)
+                    //               success: {context.GlobalSuccessCount} ({PercentRequests(context, context.GlobalSuccessCount)}%) ({Tps(context,context.GlobalSuccessCount)} tps)
+                    //           unavailable: {context.GlobalUnavailableCount} ({PercentRequests(context, context.GlobalUnavailableCount)}%)
+                    //     deadline exceeded: {context.GlobalDeadlineExceededCount} ({PercentRequests(context, context.GlobalDeadlineExceededCount)}%)
+                    //    resource exhausted: {context.GlobalResourceExhaustedCount} ({PercentRequests(context, context.GlobalResourceExhaustedCount)}%)
+                    //            rst stream: {context.GlobalRstStreamCount} ({PercentRequests(context, context.GlobalRstStreamCount)}%)
 
-    cumulative get latencies:
-{ OutputHistogramSummary(context.GetLatencies)}
+                    //cumulative set latencies:
+                    //{ OutputHistogramSummary(setsHistogram)}
 
-");
+                    //    cumulative get latencies:
+                    //{ OutputHistogramSummary(getsHistogram)}
+
+                    //");
                     //_logger.LogInformation("PRINTED STATS");
                 };
                 
@@ -639,7 +663,7 @@ cumulative set latencies:
         //`;
         //}
 
-        private static string OutputHistogramSummary(LongConcurrentHistogram histogram)
+        private static string OutputHistogramSummary(HistogramBase histogram)
         {
             return $@"
 count: {histogram.TotalCount}
@@ -647,7 +671,7 @@ count: {histogram.TotalCount}
         p90: {histogram.GetValueAtPercentile(90)}
         p99: {histogram.GetValueAtPercentile(99)}
       p99.9: {histogram.GetValueAtPercentile(99.9)}
-        max: {histogram.GetMaxValue}
+        max: {histogram.GetMaxValue()}
 ";
         }
 
