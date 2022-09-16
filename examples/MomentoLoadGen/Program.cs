@@ -4,6 +4,7 @@ using System.Diagnostics.Metrics;
 using System.Security.Cryptography;
 using System.Text;
 using Grpc.Core;
+using HdrHistogram;
 using Microsoft.Extensions.Logging;
 using Momento.Sdk;
 using Momento.Sdk.Exceptions;
@@ -89,8 +90,8 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
     internal class CsharpLoadGeneratorContext
     {
         public Stopwatch StartTime;
-        public string GetLatencies;
-        public string SetLatencies;
+        public LongConcurrentHistogram GetLatencies;
+        public LongConcurrentHistogram SetLatencies;
 
         public int GlobalRequestCount;
         public int GlobalSuccessCount;
@@ -102,8 +103,8 @@ namespace MomentoLoadGen // Note: actual namespace depends on the project name.
         public CsharpLoadGeneratorContext()
         {
             StartTime = System.Diagnostics.Stopwatch.StartNew();
-            GetLatencies = "TODO ADD HISTOGRAM";
-            SetLatencies = "TODO ADD HISTOGRAM";
+            GetLatencies = new LongConcurrentHistogram(1, TimeStamp.Minutes(1), 1);
+            SetLatencies = new LongConcurrentHistogram(1, TimeStamp.Minutes(1), 1);
 
             GlobalRequestCount = 0;
             GlobalSuccessCount = 0;
@@ -406,7 +407,7 @@ cumulative set latencies:
             if (result != null)
             {
                 var setDuration = setStartTime.ElapsedMilliseconds;
-                _logger.LogInformation("TODO UPDATE SET HISTOGRAM");
+                context.SetLatencies.RecordValue(setDuration);            
             }
 
             var getStartTime = System.Diagnostics.Stopwatch.StartNew();
@@ -417,8 +418,8 @@ cumulative set latencies:
 
             if (getResult != null)
             {
-                var ketDuration = getStartTime.ElapsedMilliseconds;
-                _logger.LogInformation("TODO UPDATE GET HISTOGRAM");
+                var getDuration = getStartTime.ElapsedMilliseconds;
+                context.GetLatencies.RecordValue(getDuration);
 
                 string valueString;
 
@@ -638,16 +639,15 @@ cumulative set latencies:
         //`;
         //}
 
-        private static string OutputHistogramSummary(string histogram)
+        private static string OutputHistogramSummary(LongConcurrentHistogram histogram)
         {
             return $@"
-count: {histogram}totalCount}}
-        min: {histogram}minNonZeroValue}}
-        p50: {histogram}getValueAtPercentile(50)}}
-        p90: {histogram}getValueAtPercentile(90)}}
-        p99: {histogram}getValueAtPercentile(99)}}
-      p99.9: {histogram}getValueAtPercentile(99.9)}}
-        max: {histogram}maxValue}}
+count: {histogram.TotalCount}
+        p50: {histogram.GetValueAtPercentile(50)}
+        p90: {histogram.GetValueAtPercentile(90)}
+        p99: {histogram.GetValueAtPercentile(99)}
+      p99.9: {histogram.GetValueAtPercentile(99.9)}
+        max: {histogram.GetMaxValue}
 ";
         }
 
