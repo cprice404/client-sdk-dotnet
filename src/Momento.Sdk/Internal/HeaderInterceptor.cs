@@ -39,8 +39,11 @@ class HeaderInterceptor : Grpc.Core.Interceptors.Interceptor
     }
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
+        Console.WriteLine("BEFORE HEADER ASYNC UNARY");
         AddCallerMetadata(ref context);
-        return continuation(request, context);
+        var result = continuation(request, context);
+        Console.WriteLine("AFTER HEADER ASYNC UNIARY");
+        return result;
     }
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
     {

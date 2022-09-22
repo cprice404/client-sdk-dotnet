@@ -7,6 +7,7 @@ using Grpc.Core;
 using HdrHistogram;
 using Microsoft.Extensions.Logging;
 using Momento.Sdk;
+using Momento.Sdk.Config;
 using Momento.Sdk.Exceptions;
 
 namespace MomentoLoadGen
@@ -87,6 +88,7 @@ namespace MomentoLoadGen
             }
 
             var momento = new SimpleCacheClient(
+                Configurations.Laptop.Latest,
                 authToken,
                 CACHE_ITEM_TTL_SECONDS,
                 _options.requestTimeoutMs
@@ -366,7 +368,7 @@ If you have questions or need help experimenting further, please reach out to us
                * is more contention between the concurrent function calls, client-side latencies
                * may increase.
                */
-              numberOfConcurrentRequests: 50,
+              numberOfConcurrentRequests: 1,
               /**
                * Controls how long the load test will run.  We will execute this many operations
                * (1 cache 'set' followed immediately by 1 'get') across all of our concurrent
