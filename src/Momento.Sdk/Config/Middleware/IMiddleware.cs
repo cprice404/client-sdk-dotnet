@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using Grpc.Core.Interceptors;
 using Momento.Sdk.Config.Retry;
 
 namespace Momento.Sdk.Config.Middleware;
@@ -10,6 +12,22 @@ namespace Momento.Sdk.Config.Middleware;
 public interface IMiddleware
 {
     public delegate Task<IGrpcResponse> MiddlewareFn(IGrpcRequest request);
+
+    ///// <summary>
+    ///// For unary gRPC requests, this middleware function will be called before the
+    ///// request is issued.  It may return a modified request and or context.
+    ///// </summary>
+    ///// <typeparam name="TRequest"></typeparam>
+    ///// <typeparam name="TResponse"></typeparam>
+    ///// <param name="request"></param>
+    ///// <param name="context"></param>
+    ///// <returns></returns>
+    //public (TRequest, ClientInterceptorContext<TRequest, TResponse>) BeforeRequest<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context) where TRequest : class where TResponse : class
+    //{
+    //    Console.WriteLine("CHRIS MIDDLEWARE BEFORE");
+    //    //return new Tuple<TRequest, ClientInterceptorContext<TRequest, TResponse>>(request, context);
+    //    return (request, context);
+    //}
 
     // TODO: this should return another delegate, ie
     // wrapRequest(middlewareFn) -> middlewareFn
