@@ -8,6 +8,7 @@ using HdrHistogram;
 using Microsoft.Extensions.Logging;
 using Momento.Sdk;
 using Momento.Sdk.Config;
+using Momento.Sdk.Config.Middleware;
 using Momento.Sdk.Exceptions;
 
 namespace MomentoLoadGen
@@ -88,7 +89,9 @@ namespace MomentoLoadGen
             }
 
             var momento = new SimpleCacheClient(
-                Configurations.Laptop.Latest,
+                Configurations.Laptop.Latest.WithAdditionalMiddlewares(new List<IMiddleware> {
+                    new LoggingMiddleware()
+                }),
                 authToken,
                 CACHE_ITEM_TTL_SECONDS,
                 _options.requestTimeoutMs
