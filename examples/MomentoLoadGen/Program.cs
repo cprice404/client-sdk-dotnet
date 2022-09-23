@@ -7,6 +7,8 @@ using Grpc.Core;
 using HdrHistogram;
 using Microsoft.Extensions.Logging;
 using Momento.Sdk;
+using Momento.Sdk.Config;
+using Momento.Sdk.Config.Middleware;
 using Momento.Sdk.Exceptions;
 
 namespace MomentoLoadGen
@@ -86,42 +88,51 @@ namespace MomentoLoadGen
                 throw new Exception("Missing required environment variable MOMENTO_AUTH_TOKEN");
             }
 
-            var momento = new SimpleCacheClient(
+            using (var momento = new SimpleCacheClient(
+                Configurations.Laptop.Latest.WithAdditionalMiddlewares(new List<IMiddleware> {
+                    //new LoggingMiddleware()
+                }),
                 authToken,
                 CACHE_ITEM_TTL_SECONDS,
                 _options.requestTimeoutMs
-            );
-
-            try
+            ))
             {
-                momento.CreateCache(CACHE_NAME);
+
+                try
+                {
+                    momento.CreateCache(CACHE_NAME);
+                }
+                catch (AlreadyExistsException)
+                {
+                    _logger.LogInformation("cache '{0}' already exists", CACHE_NAME);
+                }
+
+
+                var numOperationsPerWorker = _options.totalNumberOfOperationsToExecute / _options.numberOfConcurrentRequests;
+                var totalNumRequestsExpected = _options.totalNumberOfOperationsToExecute * NUM_REQUESTS_PER_OPERATION;
+
+                var context = new CsharpLoadGeneratorContext();
+
+
+                var asyncResults = Enumerable.Range(0, _options.numberOfConcurrentRequests).Select<int, Task>(workerId =>
+                    LaunchAndRunWorkers(
+                        momento,
+                        context,
+                        workerId + 1,
+                        numOperationsPerWorker
+                        )
+                );
+
+                var statsPrinterTask = LaunchStatsPrinterTask(context, totalNumRequestsExpected);
+
+                var firstComplete = Task.WhenAny(asyncResults);
+                // This will force the tool to exit early if there is an uncaught exception
+                // on one of the async tasks.
+                await firstComplete;
+                await Task.WhenAll(asyncResults);
+
+                await statsPrinterTask;
             }
-            catch (AlreadyExistsException)
-            {
-                _logger.LogInformation("cache '{0}' already exists", CACHE_NAME);
-            }
-
-
-            var numOperationsPerWorker = _options.totalNumberOfOperationsToExecute / _options.numberOfConcurrentRequests;
-            var totalNumRequestsExpected = _options.totalNumberOfOperationsToExecute * NUM_REQUESTS_PER_OPERATION;
-
-            var context = new CsharpLoadGeneratorContext();
-
-
-            var asyncResults = Enumerable.Range(0, _options.numberOfConcurrentRequests).Select<int, Task>(workerId =>
-                LaunchAndRunWorkers(
-                    momento,
-                    context,
-                    workerId + 1,
-                    numOperationsPerWorker
-                    )
-            );
-
-            var statsPrinterTask = LaunchStatsPrinterTask(context, totalNumRequestsExpected);
-
-            await Task.WhenAll(asyncResults);
-
-            await statsPrinterTask;
             _logger.LogInformation("Done");
         }
 
@@ -366,7 +377,7 @@ If you have questions or need help experimenting further, please reach out to us
                * is more contention between the concurrent function calls, client-side latencies
                * may increase.
                */
-              numberOfConcurrentRequests: 50,
+              numberOfConcurrentRequests: 200,
               /**
                * Controls how long the load test will run.  We will execute this many operations
                * (1 cache 'set' followed immediately by 1 'get') across all of our concurrent
