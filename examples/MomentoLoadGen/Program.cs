@@ -377,13 +377,13 @@ If you have questions or need help experimenting further, please reach out to us
                * is more contention between the concurrent function calls, client-side latencies
                * may increase.
                */
-              numberOfConcurrentRequests: 200,
+              numberOfConcurrentRequests: 5000,
               /**
                * Controls how long the load test will run.  We will execute this many operations
                * (1 cache 'set' followed immediately by 1 'get') across all of our concurrent
                * workers before exiting.  Statistics will be logged every 1000 operations.
                */
-              totalNumberOfOperationsToExecute: 50_000
+              totalNumberOfOperationsToExecute: 500_000
             );
 
             CsharpLoadGenerator loadGenerator = new CsharpLoadGenerator(
