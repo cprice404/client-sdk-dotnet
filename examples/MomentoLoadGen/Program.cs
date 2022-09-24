@@ -90,7 +90,7 @@ namespace MomentoLoadGen
 
             using (var momento = new SimpleCacheClient(
                 Configurations.Laptop.Latest.WithAdditionalMiddlewares(new List<IMiddleware> {
-                    //new LoggingMiddleware()
+                    new LoggingMiddleware()
                 }),
                 authToken,
                 CACHE_ITEM_TTL_SECONDS,
@@ -377,7 +377,7 @@ If you have questions or need help experimenting further, please reach out to us
                * is more contention between the concurrent function calls, client-side latencies
                * may increase.
                */
-              numberOfConcurrentRequests: 5000,
+              numberOfConcurrentRequests: 200,
               /**
                * Controls how long the load test will run.  We will execute this many operations
                * (1 cache 'set' followed immediately by 1 'get') across all of our concurrent
