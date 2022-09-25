@@ -26,7 +26,7 @@ public interface TryOneMoreTimeMiddleWare
     public Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(
         TRequest request,
         CallOptions callOptions,
-        Func<TRequest, CallOptions, MiddlewareResponseState<TResponse>> continuation
+        Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation
     );
 }
 
@@ -39,19 +39,24 @@ public class MaxConcMiddleware : TryOneMoreTimeMiddleWare
         _semaphore = new FairAsyncSemaphore(maxConc);
     }
 
-    public async Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(TRequest request, CallOptions callOptions, Func<TRequest, CallOptions, MiddlewareResponseState<TResponse>> continuation)
+    public async Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(TRequest request, CallOptions callOptions, Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation)
     {
         //Console.WriteLine("WithMaxConcurrentRequests waiting for semaphore");
         await _semaphore.WaitOne();
         //Console.WriteLine("WithMaxConcurrentRequests acquired semaphore");
         try
         {
-            var result = continuation(request, callOptions);
+            //Console.WriteLine("MaxConc with semaphore awaiting continuation");
+            var result = await continuation(request, callOptions);
+            //Console.WriteLine("MaxConc with semaphore returned from continuation, awaiting reponse");
+            // ensure that we don't return (and release the semaphore) until the response task is complete
             await result.ResponseAsync;
+            //Console.WriteLine("MaxConc with semaphore done awaiting reponse");
             return result;
         }
         finally
         {
+            //Console.WriteLine("WithMaxConcurrentRequests releasing semaphore");
             await _semaphore.Release();
         }
     }
@@ -60,68 +65,138 @@ public class MaxConcMiddleware : TryOneMoreTimeMiddleWare
 internal class DataClientWithMaxConcurrentRequests : IDataClient
 {
     //private readonly FairAsyncSemaphore _semaphore;
-    private readonly TryOneMoreTimeMiddleWare maxConcMiddleware;
+    private readonly List<TryOneMoreTimeMiddleWare> _middlewares;
     private readonly Scs.ScsClient _generatedClient;
 
     public DataClientWithMaxConcurrentRequests(Scs.ScsClient generatedClient, int maxConcurrentRequests)
     {
         _generatedClient = generatedClient;
         //_semaphore = new FairAsyncSemaphore(maxConcurrentRequests);
-        maxConcMiddleware = new MaxConcMiddleware(maxConcurrentRequests);
+        _middlewares = new List<TryOneMoreTimeMiddleWare> {
+            new MaxConcMiddleware(maxConcurrentRequests)
+        };
     }
 
     public async Task<_DeleteResponse> DeleteAsync(_DeleteRequest request, CallOptions callOptions)
     {
         //var f = async () => await _generatedClient.DeleteAsync(request, callOptions).ResponseAsync;
         //return await WithMaxConcurrentRequests(f);
-        Func<_DeleteRequest, CallOptions, MiddlewareResponseState<_DeleteResponse>> f = (_DeleteRequest r, CallOptions o) =>
-        {
-            var result = _generatedClient.DeleteAsync(r, o);
-            return new MiddlewareResponseState<_DeleteResponse>(
-                ResponseAsync: result.ResponseAsync,
-                ResponseHeadersAsync: result.ResponseHeadersAsync,
-                GetStatus: result.GetStatus,
-                GetTrailers: result.GetTrailers
-            );
-        };
-        var wrapped = maxConcMiddleware.WrapRequest<_DeleteRequest, _DeleteResponse>(request, callOptions, f);
-        return await (await wrapped).ResponseAsync;
+        //Func<_DeleteRequest, CallOptions, MiddlewareResponseState<_DeleteResponse>> f = (_DeleteRequest r, CallOptions o) =>
+        //{
+        //    var result = _generatedClient.DeleteAsync(r, o);
+        //    return new MiddlewareResponseState<_DeleteResponse>(
+        //        ResponseAsync: result.ResponseAsync,
+        //        ResponseHeadersAsync: result.ResponseHeadersAsync,
+        //        GetStatus: result.GetStatus,
+        //        GetTrailers: result.GetTrailers
+        //    );
+        //};
+        //var wrapped = maxConcMiddleware.WrapRequest<_DeleteRequest, _DeleteResponse>(request, callOptions, f);
+        //return await (await wrapped).ResponseAsync;
+        var wrapped = await WrapWithMiddleware(request, callOptions, (r, o) => _generatedClient.DeleteAsync(r, o));
+        return await wrapped.ResponseAsync;
     }
 
     public async Task<_GetResponse> GetAsync(_GetRequest request, CallOptions callOptions)
     {
-        //var f = async () => await _generatedClient.GetAsync(request, callOptions).ResponseAsync;
-        //return await WithMaxConcurrentRequests(f);
-        Func<_GetRequest, CallOptions, MiddlewareResponseState<_GetResponse>> f = (_GetRequest r, CallOptions o) =>
-        {
-            var result = _generatedClient.GetAsync(r, o);
-            return new MiddlewareResponseState<_GetResponse>(
-                ResponseAsync: result.ResponseAsync,
-                ResponseHeadersAsync: result.ResponseHeadersAsync,
-                GetStatus: result.GetStatus,
-                GetTrailers: result.GetTrailers
-            );
-        };
-        var wrapped = maxConcMiddleware.WrapRequest<_GetRequest, _GetResponse>(request, callOptions, f);
-        return await (await wrapped).ResponseAsync;
+        ////var f = async () => await _generatedClient.GetAsync(request, callOptions).ResponseAsync;
+        ////return await WithMaxConcurrentRequests(f);
+        //Func<_GetRequest, CallOptions, MiddlewareResponseState<_GetResponse>> f = (_GetRequest r, CallOptions o) =>
+        //{
+        //    var result = _generatedClient.GetAsync(r, o);
+        //    return new MiddlewareResponseState<_GetResponse>(
+        //        ResponseAsync: result.ResponseAsync,
+        //        ResponseHeadersAsync: result.ResponseHeadersAsync,
+        //        GetStatus: result.GetStatus,
+        //        GetTrailers: result.GetTrailers
+        //    );
+        //};
+        //var wrapped = maxConcMiddleware.WrapRequest<_GetRequest, _GetResponse>(request, callOptions, f);
+        //return await (await wrapped).ResponseAsync;
+        var wrapped = await WrapWithMiddleware(request, callOptions, (r, o) => _generatedClient.GetAsync(r, o));
+        return await wrapped.ResponseAsync;
     }
 
     public async Task<_SetResponse> SetAsync(_SetRequest request, CallOptions callOptions)
     {
         //var f = async () => await _generatedClient.SetAsync(request, callOptions).ResponseAsync;
         //return await WithMaxConcurrentRequests(f);
-        Func<_SetRequest, CallOptions, MiddlewareResponseState<_SetResponse>> f = (_SetRequest r, CallOptions o) =>
+        //Func<_SetRequest, CallOptions, MiddlewareResponseState<_SetResponse>> f = (_SetRequest r, CallOptions o) =>
+        //{
+        //    var result = _generatedClient.SetAsync(r, o);
+        //    return new MiddlewareResponseState<_SetResponse>(
+        //        ResponseAsync: result.ResponseAsync,
+        //        ResponseHeadersAsync: result.ResponseHeadersAsync,
+        //        GetStatus: result.GetStatus,
+        //        GetTrailers: result.GetTrailers
+        //    );
+        //};
+        //Func<_SetRequest, CallOptions, AsyncUnaryCall<_SetResponse>> f = (_SetRequest r, CallOptions o) =>
+        //{
+        //    return _generatedClient.SetAsync(r, o);
+        //    //return new MiddlewareResponseState<_SetResponse>(
+        //    //    ResponseAsync: result.ResponseAsync,
+        //    //    ResponseHeadersAsync: result.ResponseHeadersAsync,
+        //    //    GetStatus: result.GetStatus,
+        //    //    GetTrailers: result.GetTrailers
+        //    //);
+        //};
+        //var wrapped = maxConcMiddleware.WrapRequest<_SetRequest, _SetResponse>(request, callOptions, f);
+        //var wrapped = await WrapWithMiddleware(request, callOptions, f);
+        var wrapped = await WrapWithMiddleware(request, callOptions, (r, o) => _generatedClient.SetAsync(r, o));
+        return await wrapped.ResponseAsync;
+    }
+
+
+    private async Task<MiddlewareResponseState<TResponse>> WrapWithMiddleware<TRequest, TResponse>(
+        TRequest request,
+        CallOptions callOptions,
+        Func<TRequest, CallOptions, AsyncUnaryCall<TResponse>> func
+    )
+    {
+        Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> withConversion = (r, o) =>
         {
-            var result = _generatedClient.SetAsync(r, o);
-            return new MiddlewareResponseState<_SetResponse>(
+            //Console.WriteLine("WrapWithMiddleware original withConversion, about to call func");
+            var result = func(r, o);
+            //Console.WriteLine("Called func, wrapping in Task");
+            return Task.FromResult(new MiddlewareResponseState<TResponse>(
                 ResponseAsync: result.ResponseAsync,
                 ResponseHeadersAsync: result.ResponseHeadersAsync,
                 GetStatus: result.GetStatus,
                 GetTrailers: result.GetTrailers
-            );
+            ));
         };
-        var wrapped = maxConcMiddleware.WrapRequest<_SetRequest, _SetResponse>(request, callOptions, f);
-        return await (await wrapped).ResponseAsync;
+
+        //var wrapped = (TRequest r, CallOptions o) => Task.FromResult(withConversion(r, o));
+        //var wrapped = withConversion;
+        //foreach (TryOneMoreTimeMiddleWare middleware in _middlewares)
+        //{
+        var wrapped = _middlewares.Aggregate(withConversion, (acc, middleware) =>
+        {
+            //Console.WriteLine($"At the time of wrapping, acc is: {acc}");
+            Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> next = (r, o) =>
+            {
+                //Console.WriteLine("Calling middleware.WrapRequest");
+                //Console.WriteLine($"At the time of invoking, acc is: {acc}");
+                var response = middleware.WrapRequest(r, o, acc);
+                //Console.WriteLine("Back from Middleware.WrapRequest");
+                return response;
+            };
+            return next;
+        });
+        //Console.WriteLine("Calling final wrapped fn");
+        return await wrapped(request, callOptions);
+
+        //var wrapped = withConversion;
+        //foreach (TryOneMoreTimeMiddleWare middleware in _middlewares)
+        //{
+        //    wrapped = await middleware.WrapRequest(req)
+        //}
+   
+        
+        //var foo = _middlewares[0].WrapRequest(request, callOptions, withConversion);
+        
+        //return await maxConcMiddleware.WrapRequest<TRequest, TResponse>(request, callOptions, withConversion);
     }
 
     //private async Task<T> WithMaxConcurrentRequests<T>(Func<Task<T>> func)

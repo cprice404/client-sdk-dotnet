@@ -84,7 +84,7 @@ public class Configurations
                     /*retryableStatusCodes = DEFAULT_RETRYABLE_STATUS_CODES,*/
                     IRetryStrategy retryStrategy = new FixedCountRetryStrategy(maxAttempts: 3);
                     ITransportStrategy transportStrategy = new StaticTransportStrategy(
-                        maxConcurrentRequests: 1,
+                        maxConcurrentRequests: 200,
                         grpcConfig: new StaticGrpcConfiguration(numChannels: 6, maxSessionMemory: 128, useLocalSubChannelPool: true));
                     return new LowLatency(retryStrategy, transportStrategy);
                 }
