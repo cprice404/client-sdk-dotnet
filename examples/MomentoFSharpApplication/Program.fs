@@ -30,5 +30,5 @@ let exerciseCache() = (
 
 [<EntryPoint>]
 let main(argv :string[]) =
-    exerciseCache()
+    let x = exerciseCache()
     0
