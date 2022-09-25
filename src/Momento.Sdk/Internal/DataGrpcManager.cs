@@ -21,60 +21,53 @@ public interface IDataClient
     public Task<_DeleteResponse> DeleteAsync(_DeleteRequest request, CallOptions callOptions);
 }
 
-public interface TryOneMoreTimeMiddleWare
-{
-    public Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(
-        TRequest request,
-        CallOptions callOptions,
-        Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation
-    );
-}
 
-public class MaxConcMiddleware : TryOneMoreTimeMiddleWare
-{
-    private readonly FairAsyncSemaphore _semaphore;
+//public class MaxConcMiddleware : TryOneMoreTimeMiddleWare
+//{
+//    private readonly FairAsyncSemaphore _semaphore;
 
-    public MaxConcMiddleware(int maxConc)
-    {
-        _semaphore = new FairAsyncSemaphore(maxConc);
-    }
+//    public MaxConcMiddleware(int maxConc)
+//    {
+//        _semaphore = new FairAsyncSemaphore(maxConc);
+//    }
 
-    public async Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(TRequest request, CallOptions callOptions, Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation)
-    {
-        //Console.WriteLine("WithMaxConcurrentRequests waiting for semaphore");
-        await _semaphore.WaitOne();
-        //Console.WriteLine("WithMaxConcurrentRequests acquired semaphore");
-        try
-        {
-            //Console.WriteLine("MaxConc with semaphore awaiting continuation");
-            var result = await continuation(request, callOptions);
-            //Console.WriteLine("MaxConc with semaphore returned from continuation, awaiting reponse");
-            // ensure that we don't return (and release the semaphore) until the response task is complete
-            await result.ResponseAsync;
-            //Console.WriteLine("MaxConc with semaphore done awaiting reponse");
-            return result;
-        }
-        finally
-        {
-            //Console.WriteLine("WithMaxConcurrentRequests releasing semaphore");
-            await _semaphore.Release();
-        }
-    }
-}
+//    public async Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(TRequest request, CallOptions callOptions, Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation)
+//    {
+//        //Console.WriteLine("WithMaxConcurrentRequests waiting for semaphore");
+//        await _semaphore.WaitOne();
+//        //Console.WriteLine("WithMaxConcurrentRequests acquired semaphore");
+//        try
+//        {
+//            //Console.WriteLine("MaxConc with semaphore awaiting continuation");
+//            var result = await continuation(request, callOptions);
+//            //Console.WriteLine("MaxConc with semaphore returned from continuation, awaiting reponse");
+//            // ensure that we don't return (and release the semaphore) until the response task is complete
+//            await result.ResponseAsync;
+//            //Console.WriteLine("MaxConc with semaphore done awaiting reponse");
+//            return result;
+//        }
+//        finally
+//        {
+//            //Console.WriteLine("WithMaxConcurrentRequests releasing semaphore");
+//            await _semaphore.Release();
+//        }
+//    }
+//}
 
-internal class DataClientWithMaxConcurrentRequests : IDataClient
+internal class DataClientWithMiddleware : IDataClient
 {
     //private readonly FairAsyncSemaphore _semaphore;
-    private readonly List<TryOneMoreTimeMiddleWare> _middlewares;
+    private readonly IList<IMiddleware> _middlewares;
     private readonly Scs.ScsClient _generatedClient;
 
-    public DataClientWithMaxConcurrentRequests(Scs.ScsClient generatedClient, int maxConcurrentRequests)
+    public DataClientWithMiddleware(Scs.ScsClient generatedClient, IList<IMiddleware> middlewares)
     {
         _generatedClient = generatedClient;
         //_semaphore = new FairAsyncSemaphore(maxConcurrentRequests);
-        _middlewares = new List<TryOneMoreTimeMiddleWare> {
-            new MaxConcMiddleware(maxConcurrentRequests)
-        };
+        //_middlewares = new List<IMiddleware> {
+        //    new MaxConcMiddleware(maxConcurrentRequests)
+        //};
+        _middlewares = middlewares;
     }
 
     public async Task<_DeleteResponse> DeleteAsync(_DeleteRequest request, CallOptions callOptions)
@@ -244,8 +237,12 @@ public class DataGrpcManager : IDisposable
         //CallInvoker invoker = invokerWithMiddlewares
         CallInvoker invoker = this.channel
             .Intercept(new HeaderInterceptor(headers));
+
+        var middlewares = config.Middlewares.Concat(
+            new List<IMiddleware> { new MaxConcurrentRequestsMiddleware(config.TransportStrategy.MaxConcurrentRequests) }
+        ).ToList();
             
-        Client = new DataClientWithMaxConcurrentRequests(new Scs.ScsClient(invoker), config.TransportStrategy.MaxConcurrentRequests);
+        Client = new DataClientWithMiddleware(new Scs.ScsClient(invoker), middlewares);
     }
 
     public void Dispose()

@@ -90,7 +90,7 @@ namespace MomentoLoadGen
 
             using (var momento = new SimpleCacheClient(
                 Configurations.Laptop.Latest.WithAdditionalMiddlewares(new List<IMiddleware> {
-                    new LoggingMiddleware()
+                    //new LoggingMiddleware()
                 }),
                 authToken,
                 CACHE_ITEM_TTL_SECONDS,
