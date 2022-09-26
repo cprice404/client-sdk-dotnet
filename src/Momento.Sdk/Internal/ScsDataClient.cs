@@ -210,7 +210,7 @@ internal sealed class ScsDataClient : ScsDataClientBase
         _DeleteRequest request = new _DeleteRequest() { CacheKey = key };
         try
         {
-            await this.grpcManager.Client.DeleteAsync(request,new CallOptions(headers: MetadataWithCache(cacheName), deadline: CalculateDeadline()));
+            await this.grpcManager.Client.DeleteAsync(request, new CallOptions(headers: MetadataWithCache(cacheName), deadline: CalculateDeadline()));
         }
         catch (Exception e)
         {

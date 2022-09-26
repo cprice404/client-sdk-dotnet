@@ -79,7 +79,7 @@ internal class DataClientWithMiddleware : IDataClient
 public class DataGrpcManager : IDisposable
 {
     private readonly GrpcChannel channel;
-    
+
     public readonly IDataClient Client;
 
     private readonly string version = "dotnet:" + GetAssembly(typeof(Momento.Sdk.Responses.CacheGetResponse)).GetName().Version.ToString();
@@ -99,7 +99,7 @@ public class DataGrpcManager : IDisposable
         var middlewares = config.Middlewares.Concat(
             new List<IMiddleware> { new MaxConcurrentRequestsMiddleware(config.TransportStrategy.MaxConcurrentRequests) }
         ).ToList();
-            
+
         Client = new DataClientWithMiddleware(new Scs.ScsClient(invoker), middlewares);
     }
 

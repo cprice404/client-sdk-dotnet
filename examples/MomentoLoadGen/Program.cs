@@ -89,7 +89,8 @@ namespace MomentoLoadGen
             }
 
             using (var momento = new SimpleCacheClient(
-                Configurations.Laptop.Latest.WithAdditionalMiddlewares(new List<IMiddleware> {
+                Configurations.Laptop.Latest.WithAdditionalMiddlewares(new List<IMiddleware>
+                {
                     //new LoggingMiddleware()
                 }),
                 authToken,
