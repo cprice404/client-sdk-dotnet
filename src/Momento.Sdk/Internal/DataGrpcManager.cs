@@ -9,6 +9,7 @@ using Grpc.Net.Client;
 using Momento.Protos.CacheClient;
 using Momento.Sdk.Config;
 using Momento.Sdk.Config.Middleware;
+using Momento.Sdk.Internal.Middleware;
 using static System.Reflection.Assembly;
 using static Grpc.Core.Interceptors.Interceptor;
 
@@ -21,6 +22,15 @@ public interface IDataClient
     public Task<_DeleteResponse> DeleteAsync(_DeleteRequest request, CallOptions callOptions);
 }
 
+
+// Ideally we would implement our middleware based on gRPC Interceptors.  Unfortunately,
+// the their method signatures are not asynchronous. Thus, for any middleware that may
+// require asynchronous actions (such as our MaxConcurrentRequestsMiddleware), we would
+// end up blocking threads to wait for the completion of the async task, which would have
+// a big negative impact on performance. Instead, in this commit, we implement a thin
+// middleware layer of our own that uses asynchronous signatures throughout.  This has
+// the nice side effect of making the user-facing API for writing Middlewares a bit less
+// of a learning curve for anyone not super deep on gRPC internals.
 internal class DataClientWithMiddleware : IDataClient
 {
     private readonly IList<IMiddleware> _middlewares;
