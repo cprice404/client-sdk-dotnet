@@ -41,12 +41,14 @@ public interface IMiddleware
     /// <typeparam name="TRequest"></typeparam>
     /// <typeparam name="TResponse"></typeparam>
     /// <param name="request"></param>
-    /// <param name="context"></param>
+    /// <param name="callOptions"></param>
     /// <param name="continuation"></param>
     /// <returns></returns>
-    public MiddlewareResponseState<TResponse> WrapRequest<TRequest, TResponse>(
+    /// 
+    public Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(
         TRequest request,
-        ClientInterceptorContext<TRequest, TResponse> context,
-        Func<TRequest, ClientInterceptorContext<TRequest, TResponse>, MiddlewareResponseState<TResponse>> continuation
-    ) where TRequest : class where TResponse : class;
+        CallOptions callOptions,
+        Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation
+    );
+
 }
