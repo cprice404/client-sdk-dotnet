@@ -29,10 +29,13 @@ namespace Momento.Sdk.Config.Middleware
             await _ticketChannel.Reader.ReadAsync();
         }
 
-        public async Task Release()
+        public void Release()
         {
-            //Console.WriteLine($"Releasing for semaphore");
-            await _ticketChannel.Writer.WriteAsync(true);
+            var balanced = _ticketChannel.Writer.TryWrite(true);
+            if (!balanced)
+            {
+                throw new ApplicationException("more releases than waits! These must be 1:1")
+            }
         }
     }
 }
