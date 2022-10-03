@@ -207,6 +207,11 @@ public class DataGrpcManager : IDisposable
     {
         var url = $"https://{host}";
         var channelOptions = config.TransportStrategy.GrpcConfig.GrpcChannelOptions;
+        Console.WriteLine($"\n\n\n\n\nCHANNEL OPTIONS LOGGER FACTORY: {channelOptions.LoggerFactory == null}\n\n\n\n");
+        if (channelOptions.LoggerFactory == null)
+        {
+            channelOptions.LoggerFactory = loggerFactory;
+        }
         channelOptions.Credentials = ChannelCredentials.SecureSsl;
 
         this.channel = GrpcChannel.ForAddress(url, channelOptions);
