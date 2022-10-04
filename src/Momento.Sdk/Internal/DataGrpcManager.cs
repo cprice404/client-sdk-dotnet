@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Momento.Protos.CacheClient;
 using Momento.Sdk.Config;
 using Momento.Sdk.Config.Middleware;
+using Momento.Sdk.Config.Retry;
 using Momento.Sdk.Internal.Middleware;
 using static System.Reflection.Assembly;
 using static Grpc.Core.Interceptors.Interceptor;
@@ -219,7 +220,11 @@ public class DataGrpcManager : IDisposable
         CallInvoker invoker = this.channel.Intercept(new HeaderInterceptor(headers));
 
         var middlewares = config.Middlewares.Concat(
-            new List<IMiddleware> { new MaxConcurrentRequestsMiddleware(config.TransportStrategy.MaxConcurrentRequests) }
+            new List<IMiddleware> {
+                new RetryMiddleware(loggerFactory),
+                //new LoggingMiddleware(loggerFactory),
+                new MaxConcurrentRequestsMiddleware(config.TransportStrategy.MaxConcurrentRequests)
+            }
         ).ToList();
 
         Client = new DataClientWithMiddleware(new Scs.ScsClient(invoker), middlewares);

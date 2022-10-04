@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.Logging;
 
+
 namespace Momento.Sdk.Config.Middleware
 {
     /// <summary>
@@ -25,14 +26,23 @@ namespace Momento.Sdk.Config.Middleware
             Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation
         )
         {
-            _logger.LogDebug("Executing request of type: {}", request?.GetType());
+            //_logger.LogDebug("Executing request of type: {}", request?.GetType());
             var nextState = await continuation(request, callOptions);
+            //var response = await nextState.ResponseAsync;
             return new MiddlewareResponseState<TResponse>(
-                ResponseAsync: nextState.ResponseAsync.ContinueWith(r =>
-                {
-                    _logger.LogDebug("Got response for request of type: {}", request?.GetType());
-                    return r.Result;
-                }),
+                ResponseAsync: nextState.ResponseAsync.ContinueWith(r => r.Result),
+                //nextState.ResponseAsync
+                //.ContinueWith(r => r.Result),
+                //.ContinueWith(r => r.Result),
+                //.ContinueWith(r => r.Result, TaskContinuationOptions.NotOnFaulted),
+                //.ContinueWith(r => r.Result, TaskContinuationOptions.OnlyOnRanToCompletion),
+                //    ContinueWith(r =>
+                //{
+                //    return r;
+                //    //_logger.LogDebug("Got response for request of type: {}", request?.GetType());
+                //    ////return r.Result;
+                //    //return r;
+                //}),
                 ResponseHeadersAsync: nextState.ResponseHeadersAsync,
                 GetStatus: nextState.GetStatus,
                 GetTrailers: nextState.GetTrailers

@@ -10,12 +10,22 @@ public class CacheExceptionMapper
 
     public static SdkException Convert(Exception e)
     {
-        if (e is SdkException exception)
+        var unwrappedException = e;
+        if (e is AggregateException aggregateException)
+        {
+            Console.WriteLine($"Singular InnerException: {aggregateException.InnerException}");
+            Console.WriteLine($"Plural InnerExceptions: {aggregateException.InnerExceptions}");
+            unwrappedException = aggregateException.InnerException;
+        }
+
+        Console.WriteLine($"ATTEMPTING TO CONVERT EXCEPTION: {unwrappedException}");
+        if (unwrappedException is SdkException exception)
         {
             return exception;
         }
-        if (e is RpcException ex)
+        if (unwrappedException is RpcException ex)
         {
+            
             MomentoErrorTransportDetails transportDetails = new MomentoErrorTransportDetails(
                 new MomentoGrpcErrorDetails(ex.StatusCode, ex.Message, null)
             );
@@ -61,9 +71,9 @@ public class CacheExceptionMapper
 
                 case StatusCode.Aborted:
                 case StatusCode.DataLoss:
-                default: return new InternalServerException(INTERNAL_SERVER_ERROR_MESSAGE, transportDetails, e);
+                default: return new InternalServerException(INTERNAL_SERVER_ERROR_MESSAGE, transportDetails, unwrappedException);
             }
         }
-        return new UnknownException(SDK_ERROR_MESSAGE, null, e);
+        return new UnknownException(SDK_ERROR_MESSAGE, null, unwrappedException);
     }
 }
