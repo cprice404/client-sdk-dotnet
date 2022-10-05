@@ -8,11 +8,12 @@ namespace Momento.Sdk.Config;
 
 public class Configuration : IConfiguration
 {
+    public ILoggerFactory LoggingFactory { get; }
     public IRetryStrategy RetryStrategy { get; }
     public IList<IMiddleware> Middlewares { get; }
     public ITransportStrategy TransportStrategy { get; }
 
-    public Configuration(IRetryStrategy retryStrategy, ITransportStrategy transportStrategy)
+    public Configuration(IRetryStrategy retryStrategy, ITransportStrategy transportStrategy, ILoggerFactory)
         : this(retryStrategy, new List<IMiddleware>(), transportStrategy)
     {
 
