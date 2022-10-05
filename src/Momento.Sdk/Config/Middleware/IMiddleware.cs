@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.Extensions.Logging;
 using Momento.Sdk.Config.Retry;
 
 namespace Momento.Sdk.Config.Middleware;
@@ -33,8 +34,10 @@ public record struct MiddlewareResponseState<TResponse>(
 /// The Middleware interface allows the Configuration to provide a higher-order function that wraps all requests.
 /// This allows future support for things like client-side metrics or other diagnostics helpers.
 /// </summary>
-public interface IMiddleware
+public interface IMiddleware : ILoggerConsumer
 {
+    public new IMiddleware WithLoggerFactory(ILoggerFactory loggerFactory);
+
     /// <summary>
     /// Called as a wrapper around each request; can be used to time the request and collect metrics etc.
     /// </summary>
