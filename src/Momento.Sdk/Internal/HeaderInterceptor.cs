@@ -58,6 +58,16 @@ class HeaderInterceptor : Grpc.Core.Interceptors.Interceptor
         return continuation(context);
     }
 
+
+    private void PrintTheStupidMetadata(Metadata metadata)
+    {
+        metadata.ToList().Select(e =>
+        {
+            Console.WriteLine($"{e.Key}: {e.Value}");
+            return 42;
+        }).ToList();
+    }
+
     private void AddCallerMetadata<TRequest, TResponse>(ref ClientInterceptorContext<TRequest, TResponse> context)
         where TRequest : class
         where TResponse : class
@@ -74,7 +84,19 @@ class HeaderInterceptor : Grpc.Core.Interceptors.Interceptor
         }
         foreach (Header header in this.headersToAddEveryTime)
         {
-            headers.Add(header.Name, header.Value);
+            //Console.WriteLine($"Adding a header: {header.Name}: {header.Value}");
+            Console.WriteLine($"HEADERS INTERCEPTOR CHECKING TO SEE IF THE HEADERS ALREADY CONTAIN: {header.Name}");
+            PrintTheStupidMetadata(headers);
+            //if (!headers.Contains(new Metadata.Entry(header.Name, header.Value))) {
+            if (!headers.Any(h => h.Key == header.Name)) {
+                Console.WriteLine($"HEADERS INTERCEPTOR: DETECTED THAT THE HEADER WAS NOT ALREADY PRESENT, ADDING");
+                headers.Add(header.Name, header.Value);
+            } else
+            {
+                Console.WriteLine("HEADERS INTERCEPTOR: DETECTED THAT THE HEADER WAS ALREADY PRESENT, SKIPPING");
+            }
+            
+            //headers.Add(header.Name, header.Value);
         }
         if (!areOnlyOnceHeadersSent)
         {
