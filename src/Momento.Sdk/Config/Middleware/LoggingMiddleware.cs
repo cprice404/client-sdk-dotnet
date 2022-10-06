@@ -27,10 +27,10 @@ namespace Momento.Sdk.Config.Middleware
             return new(loggerFactory);
         }
 
-        ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
-        {
-            return WithLoggerFactory(loggerFactory);
-        }
+        //ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
+        //{
+        //    return WithLoggerFactory(loggerFactory);
+        //}
 
         IMiddleware IMiddleware.WithLoggerFactory(ILoggerFactory loggerFactory)
         {

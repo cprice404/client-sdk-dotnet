@@ -4,11 +4,11 @@ namespace Momento.Sdk.Config.Retry;
 
 public class FixedCountRetryStrategy : IRetryStrategy
 {
-    public ILoggerFactory LoggerFactory { get; }
+    public ILoggerFactory? LoggerFactory { get; }
     public int MaxAttempts { get; }
 
     //FixedCountRetryStrategy(retryableStatusCodes = DEFAULT_RETRYABLE_STATUS_CODES, maxAttempts = 3),
-    public FixedCountRetryStrategy(ILoggerFactory loggerFactory, int maxAttempts)
+    public FixedCountRetryStrategy(int maxAttempts, ILoggerFactory? loggerFactory = null)
     {
         LoggerFactory = loggerFactory;
         MaxAttempts = maxAttempts;
@@ -16,7 +16,7 @@ public class FixedCountRetryStrategy : IRetryStrategy
 
     public FixedCountRetryStrategy WithLoggerFactory(ILoggerFactory loggerFactory)
     {
-        return new(loggerFactory, MaxAttempts);
+        return new(MaxAttempts, loggerFactory);
     }
 
     IRetryStrategy IRetryStrategy.WithLoggerFactory(ILoggerFactory loggerFactory)
@@ -24,14 +24,14 @@ public class FixedCountRetryStrategy : IRetryStrategy
         return WithLoggerFactory(loggerFactory);
     }
 
-    ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
-    {
-        return WithLoggerFactory(loggerFactory);
-    }
+    //ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
+    //{
+    //    return WithLoggerFactory(loggerFactory);
+    //}
 
     public FixedCountRetryStrategy WithMaxAttempts(int maxAttempts)
     {
-        return new(LoggerFactory, maxAttempts);
+        return new(maxAttempts, LoggerFactory);
     }
 
     public int? DetermineWhenToRetryRequest(IGrpcResponse grpcResponse, IGrpcRequest grpcRequest, int attemptNumber)

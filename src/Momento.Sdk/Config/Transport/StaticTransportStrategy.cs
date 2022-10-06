@@ -33,11 +33,11 @@ public class StaticGrpcConfiguration : IGrpcConfiguration
 
 public class StaticTransportStrategy : ITransportStrategy
 {
-    public ILoggerFactory LoggerFactory { get; }
+    public ILoggerFactory? LoggerFactory { get; }
     public int MaxConcurrentRequests { get; }
     public IGrpcConfiguration GrpcConfig { get; }
 
-    public StaticTransportStrategy(ILoggerFactory loggerFactory, int maxConcurrentRequests, IGrpcConfiguration grpcConfig)
+    public StaticTransportStrategy(int maxConcurrentRequests, IGrpcConfiguration grpcConfig, ILoggerFactory? loggerFactory = null)
     {
         LoggerFactory = loggerFactory;
         MaxConcurrentRequests = maxConcurrentRequests;
@@ -46,7 +46,7 @@ public class StaticTransportStrategy : ITransportStrategy
 
     public StaticTransportStrategy WithLoggerFactory(ILoggerFactory loggerFactory)
     {
-        return new(loggerFactory, MaxConcurrentRequests, GrpcConfig);
+        return new(MaxConcurrentRequests, GrpcConfig, loggerFactory);
     }
 
     ITransportStrategy ITransportStrategy.WithLoggerFactory(ILoggerFactory loggerFactory)
@@ -54,24 +54,24 @@ public class StaticTransportStrategy : ITransportStrategy
         return WithLoggerFactory(loggerFactory);
     }
 
-    ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
-    {
-        return WithLoggerFactory(loggerFactory);
-    }
+    //ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
+    //{
+    //    return WithLoggerFactory(loggerFactory);
+    //}
 
     public ITransportStrategy WithMaxConcurrentRequests(int maxConcurrentRequests)
     {
-        return new StaticTransportStrategy(LoggerFactory, maxConcurrentRequests, GrpcConfig);
+        return new StaticTransportStrategy(maxConcurrentRequests, GrpcConfig, LoggerFactory);
     }
 
     public ITransportStrategy WithGrpcConfig(IGrpcConfiguration grpcConfig)
     {
-        return new StaticTransportStrategy(LoggerFactory, MaxConcurrentRequests, grpcConfig);
+        return new StaticTransportStrategy(MaxConcurrentRequests, grpcConfig, LoggerFactory);
     }
 
     public ITransportStrategy WithClientTimeoutMillis(uint clientTimeoutMillis)
     {
-        return new StaticTransportStrategy(LoggerFactory, MaxConcurrentRequests, GrpcConfig.WithDeadlineMilliseconds(clientTimeoutMillis));
+        return new StaticTransportStrategy(MaxConcurrentRequests, GrpcConfig.WithDeadlineMilliseconds(clientTimeoutMillis), LoggerFactory);
     }
 
 }

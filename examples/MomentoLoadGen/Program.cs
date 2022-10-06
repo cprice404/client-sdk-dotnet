@@ -7,6 +7,7 @@ using Grpc.Core;
 using HdrHistogram;
 using Microsoft.Extensions.Logging;
 using Momento.Sdk;
+using Momento.Sdk.Auth;
 using Momento.Sdk.Config;
 using Momento.Sdk.Exceptions;
 using Momento.Sdk.Responses;
@@ -68,16 +69,14 @@ namespace MomentoLoadGen
         const string CACHE_NAME = "momento-loadgen";
         const int NUM_REQUESTS_PER_OPERATION = 2;
 
-        private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<CsharpLoadGenerator> _logger;
         private readonly IConfiguration _momentoClientConfig;
         private readonly CsharpLoadGeneratorOptions _options;
         private readonly string _cacheValue;
 
-        public CsharpLoadGenerator(ILoggerFactory loggerFactory, IConfiguration momentoClientConfig, CsharpLoadGeneratorOptions options)
+        public CsharpLoadGenerator(IConfiguration momentoClientConfig, CsharpLoadGeneratorOptions options)
         {
-            _loggerFactory = loggerFactory;
-            _logger = loggerFactory.CreateLogger<CsharpLoadGenerator>();
+            _logger = momentoClientConfig.LoggerFactory.CreateLogger<CsharpLoadGenerator>();
             _momentoClientConfig = momentoClientConfig;
 
             _options = options;
@@ -88,17 +87,12 @@ namespace MomentoLoadGen
 
         public async Task Run()
         {
-            string? authToken = System.Environment.GetEnvironmentVariable("MOMENTO_AUTH_TOKEN");
-            if (authToken == null)
-            {
-                throw new Exception("Missing required environment variable MOMENTO_AUTH_TOKEN");
-            }
+            var authTokenProvider = new EnvMomentoTokenProvider("MOMENTO_AUTH_TOKEN");
 
             var momento = new SimpleCacheClient(
                 _momentoClientConfig,
-                authToken,
-                CACHE_ITEM_TTL_SECONDS,
-                _loggerFactory
+                authTokenProvider,
+                CACHE_ITEM_TTL_SECONDS
             );
 
             try
@@ -423,14 +417,14 @@ If you have questions or need help experimenting further, please reach out to us
               /// is more contention between the concurrent function calls, client-side latencies
               /// may increase.
               ///
-              numberOfConcurrentRequests: 50,
+              numberOfConcurrentRequests: 200,
               ///
               /// Sets an upper bound on how many requests per second will be sent to the server.
               /// Momento caches have a default throttling limit of 100 requests per second,
               /// so if you raise this, you may observe throttled requests.  Contact
               /// support@momentohq.com to inquire about raising your limits.
               ///
-              maxRequestsPerSecond: 100,
+              maxRequestsPerSecond: 5_000,
               ///
               /// Controls how long the load test will run.  We will execute this many operations
               /// (1 cache 'set' followed immediately by 1 'get') across all of our concurrent
@@ -444,10 +438,11 @@ If you have questions or need help experimenting further, please reach out to us
             /// our pre-built configurations that are optimized for Laptop vs InRegion environments,
             /// or build your own.
             ///
-            IConfiguration config = Configurations.Laptop.Latest.WithClientTimeoutMillis(1000);
+            IConfiguration config = Configurations.Laptop.Latest
+                .WithLoggerFactory(loggerFactory)
+                .WithClientTimeoutMillis(1000);
 
             CsharpLoadGenerator loadGenerator = new CsharpLoadGenerator(
-                loggerFactory,
                 config,
                 loadGeneratorOptions
                 );

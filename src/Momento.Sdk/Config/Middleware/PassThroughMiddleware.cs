@@ -26,10 +26,10 @@ public class PassThroughMiddleware : IMiddleware
         return WithLoggerFactory(loggerFactory);
     }
 
-    ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
-    {
-        return WithLoggerFactory(loggerFactory);
-    }
+    //ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
+    //{
+    //    return WithLoggerFactory(loggerFactory);
+    //}
 
     public Task<MiddlewareResponseState<TResponse>> WrapRequest<TRequest, TResponse>(TRequest request, CallOptions callOptions, Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuation)
     {

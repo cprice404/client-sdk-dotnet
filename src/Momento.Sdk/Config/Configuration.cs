@@ -38,10 +38,10 @@ public class Configuration : IConfiguration
         return new Configuration(RetryStrategy, Middlewares, TransportStrategy, loggerFactory);
     }
 
-    ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
-    {
-        return WithLoggerFactory(loggerFactory);
-    }
+    //ILoggerConsumer ILoggerConsumer.WithLoggerFactory(ILoggerFactory loggerFactory)
+    //{
+    //    return WithLoggerFactory(loggerFactory);
+    //}
 
     public IConfiguration WithRetryStrategy(IRetryStrategy retryStrategy)
     {
@@ -78,4 +78,8 @@ public class Configuration : IConfiguration
         );
     }
 
+    IConfiguration IConfiguration.WithClientTimeoutMillis(uint clientTimeoutMillis)
+    {
+        return WithClientTimeoutMillis(clientTimeoutMillis);
+    }
 }
