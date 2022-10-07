@@ -15,28 +15,6 @@ namespace Momento.Sdk.Config.Retry
 
         private readonly ILogger _logger;
         private readonly IRetryStrategy _retryStrategy;
-        private readonly HashSet<StatusCode> _retryableStatusCodes = new HashSet<StatusCode>
-        {
-            //StatusCode.OK,
-            //StatusCode.Cancelled,
-            //StatusCode.Unknown,
-            //StatusCode.InvalidArgument,
-            //StatusCode.DeadlineExceeded,
-            //StatusCode.NotFound,
-            //StatusCode.AlreadyExists,
-            //StatusCode.PermissionDenied,
-            //StatusCode.Unauthenticated,
-            //StatusCode.ResourceExhausted,
-            //StatusCode.FailedPrecondition,
-            //StatusCode.Aborted,
-            //StatusCode.OutOfRange,
-            //StatusCode.Unimplemented,
-            StatusCode.Internal,
-            StatusCode.Unavailable,
-            //StatusCode.DataLoss,
-        };
-
-        private readonly HashSet<Type> _retryableRequestTypes = new HashSet<Type>();
 
         public RetryMiddleware(ILoggerFactory loggerFactory, IRetryStrategy retryStrategy)
         {
@@ -94,10 +72,6 @@ namespace Momento.Sdk.Config.Retry
                     var status = nextState.GetStatus();
                     _logger.LogDebug($"Request failed with status {status.StatusCode}, checking to see if we should retry; attempt Number: {attemptNumber}");
                     _logger.LogTrace($"Failed request status: {status}");
-                    if (!IsEligibleForRetry(status, request))
-                    {
-                        break;
-                    }
                     retryAfterMillis = _retryStrategy.DetermineWhenToRetryRequest(nextState.GetStatus(), request, attemptNumber);
                 }
             }
@@ -109,24 +83,6 @@ namespace Momento.Sdk.Config.Retry
                 GetStatus: nextState.GetStatus,
                 GetTrailers: nextState.GetTrailers
             );
-        }
-
-        private bool IsEligibleForRetry<TRequest>(Status status, TRequest request)
-            where TRequest : class
-        {
-            if (! _retryableStatusCodes.Contains(status.StatusCode))
-            {
-                _logger.LogDebug("Response with status code {} is not retryable.", status.StatusCode);
-                return false;
-            }
-
-            if (!_retryableRequestTypes.Contains(request.GetType()))
-            {
-                _logger.LogDebug("Request with type {} is not retryable.", request.GetType());
-                return false;
-            }
-
-            return true;
         }
     }
 }
