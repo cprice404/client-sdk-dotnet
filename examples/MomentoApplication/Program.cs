@@ -7,11 +7,13 @@ using Momento.Sdk.Config;
 using Momento.Sdk.Exceptions;
 using Momento.Sdk.Responses;
 
-ICredentialProvider authProvider = new EnvMomentoTokenProvider("MOMENTO_AUTH_TOKEN");
+
 const string CACHE_NAME = "momento-example";
 const string KEY = "MyKey";
 const string VALUE = "MyData";
 const uint DEFAULT_TTL_SECONDS = 60;
+
+ICredentialProvider authProvider = new EnvMomentoTokenProvider("MOMENTO_AUTH_TOKEN");
 
 using (SimpleCacheClient client = new SimpleCacheClient(Configurations.Laptop.Latest, authProvider, DEFAULT_TTL_SECONDS))
 {

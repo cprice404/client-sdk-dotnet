@@ -1,6 +1,6 @@
-namespace Momento.Sdk.Config.Retry;
+//namespace Momento.Sdk.Config.Retry;
 
-public interface IGrpcRequest
-{
+//public interface IGrpcRequest
+//{
 
-}
+//}
