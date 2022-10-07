@@ -223,7 +223,7 @@ public class DataGrpcManager : IDisposable
 
         var middlewares = config.Middlewares.Concat(
             new List<IMiddleware> {
-                new RetryMiddleware(config.LoggerFactory),
+                new RetryMiddleware(config.LoggerFactory, config.RetryStrategy),
                 new HeaderMiddleware(config.LoggerFactory, headers),
                 new MaxConcurrentRequestsMiddleware(config.LoggerFactory, config.TransportStrategy.MaxConcurrentRequests)
             }

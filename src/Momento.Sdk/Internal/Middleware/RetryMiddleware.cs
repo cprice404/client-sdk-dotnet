@@ -12,34 +12,20 @@ namespace Momento.Sdk.Config.Retry
     {
         public ILoggerFactory? LoggerFactory { get; }
 
-        private void PrintTheStupidMetadata(Metadata metadata)
-        {
-            metadata.ToList().Select(e =>
-            {
-                Console.WriteLine($"{e.Key}: {e.Value}");
-                return 42;
-            }).ToList();
-        }
-
         private readonly ILogger _logger;
         private readonly IRetryStrategy _retryStrategy;
 
 
-        public RetryMiddleware(ILoggerFactory loggerFactory)
+        public RetryMiddleware(ILoggerFactory loggerFactory, IRetryStrategy retryStrategy)
         {
             LoggerFactory = loggerFactory;
-
             _logger = loggerFactory.CreateLogger<RetryMiddleware>();
-
-            // TODO
-            // TODO get this from config
-            // TODO
-            _retryStrategy = new FixedCountRetryStrategy(3, LoggerFactory);
+            _retryStrategy = retryStrategy;
         }
 
         public RetryMiddleware WithLoggerFactory(ILoggerFactory loggerFactory)
         {
-            return new(loggerFactory);
+            return new(loggerFactory, _retryStrategy);
         }
 
         IMiddleware IMiddleware.WithLoggerFactory(ILoggerFactory loggerFactory)
@@ -54,7 +40,7 @@ namespace Momento.Sdk.Config.Retry
         )
         {
             MiddlewareResponseState<TResponse> nextState;
-            int attemptNumber = -1;
+            int attemptNumber = 0;
             int? retryAfterMillis = 0;
             do
             {
@@ -65,13 +51,16 @@ namespace Momento.Sdk.Config.Retry
                 }
                 attemptNumber++;
                 nextState = await continuation(request, callOptions);
+
+                // NOTE: we need a try/catch block here, because: (a) we cannot call
+                // `nextState.GetStatus()` until after we `await` the response, or
+                // it will throw an error.  and (b) if the status is anything other
+                // than "ok", the `await` on the response will throw an exception.
                 try
                 {
                     await nextState.ResponseAsync;
-                    // TODO
-                    // TODO
-                    // TODO
-                    if (attemptNumber > 0)
+                    
+                    if (attemptNumber > 1)
                     {
                         _logger.LogDebug($"Retry succeeded (attempt {attemptNumber})");
                     }
@@ -93,75 +82,6 @@ namespace Momento.Sdk.Config.Retry
                 GetStatus: nextState.GetStatus,
                 GetTrailers: nextState.GetTrailers
             );
-
-            //var nextState = await continuation(request, callOptions);
-            //try
-            //{
-            //    await nextState.ResponseAsync;
-            //}
-            //catch (Exception)
-            //{
-            //    int attemptNumber = 1;
-            //    int? retryAfterMillis = _retryStrategy.DetermineWhenToRetryRequest(nextState.GetStatus(), request, attemptNumber);
-            //    while (retryAfterMillis != null)
-            //    {
-            //        String cacheKey = "NO IDEA";
-            //        if (request is _GetRequest getRequest)
-            //        {
-            //            cacheKey = getRequest.CacheKey.ToStringUtf8();
-            //        }
-            //        else if (request is _SetRequest setRequest)
-            //        {
-            //            cacheKey = setRequest.CacheKey.ToStringUtf8();
-            //        }
-            //        _logger.LogDebug($"Incrementing attempt number for {cacheKey}: {attemptNumber}");
-            //        attemptNumber++;
-            //        nextState = await continuation(request, callOptions);
-            //        try
-            //        {
-            //            await nextState.ResponseAsync;
-            //            _logger.LogDebug("Retry succeeded!");
-            //            break;
-            //        }
-            //        catch (Exception)
-            //        {
-            //            _logger.LogDebug($"Retry failed, checking to see if we should retry again for {cacheKey}: {attemptNumber}");
-            //            retryAfterMillis = _retryStrategy.DetermineWhenToRetryRequest(nextState.GetStatus(), request, attemptNumber);
-            //        }
-            //    }
-            //    //var nextState = await continuation(request, callOptions);
-            //    //try
-            //    //{
-            //    //    await nextState.ResponseAsync;
-            //    //} catch (Exception)
-            //    //{
-            //    //    int attemptNumber = 1;
-            //    //    int? retryAfterMillis = _retryStrategy.DetermineWhenToRetryRequest(nextState.GetStatus(), request, attemptNumber);
-            //    //    while (retryAfterMillis != null) {
-            //    //        String cacheKey = "NO IDEA";
-            //    //        if (request is _GetRequest getRequest)
-            //    //        {
-            //    //            cacheKey = getRequest.CacheKey.ToStringUtf8();
-            //    //        } else if (request is _SetRequest setRequest)
-            //    //        {
-            //    //            cacheKey = setRequest.CacheKey.ToStringUtf8();
-            //    //        }
-            //    //        _logger.LogDebug($"Incrementing attempt number for {cacheKey}: {attemptNumber}");
-            //    //        attemptNumber++;
-            //    //        nextState = await continuation(request, callOptions);
-            //    //        try
-            //    //        {
-            //    //            await nextState.ResponseAsync;
-            //    //            _logger.LogDebug("Retry succeeded!");
-            //    //            break;
-            //    //        } catch (Exception)
-            //    //        {
-            //    //            _logger.LogDebug($"Retry failed, checking to see if we should retry again for {cacheKey}: {attemptNumber}");
-            //    //            retryAfterMillis = _retryStrategy.DetermineWhenToRetryRequest(nextState.GetStatus(), request, attemptNumber);
-            //    //        }
-            //    //    }
-            //}
-
         }
     }
 }
