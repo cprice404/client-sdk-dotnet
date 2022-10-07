@@ -171,7 +171,7 @@ internal class DataClientWithMiddleware : IDataClient
         TRequest request,
         CallOptions callOptions,
         Func<TRequest, CallOptions, AsyncUnaryCall<TResponse>> continuation
-    )
+    ) where TRequest : class where TResponse : class
     {
         Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuationWithMiddlewareResponseState = (r, o) =>
         {
@@ -192,7 +192,7 @@ internal class DataClientWithMiddleware : IDataClient
     }
 }
 
-public class DataGrpcManager : IDisposable
+internal class DataGrpcManager : IDisposable
 {
     private readonly GrpcChannel channel;
 

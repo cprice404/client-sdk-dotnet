@@ -38,7 +38,7 @@ public class FixedCountRetryStrategy : IRetryStrategy
 
     public int? DetermineWhenToRetryRequest<TRequest>(Status grpcStatus, TRequest grpcRequest, int attemptNumber)
     {
-        _logger.LogDebug($"Determining whether request is eligible for retry; attemptNumber: {attemptNumber}, maxAttempts: {MaxAttempts}");
+        _logger.LogDebug($"Determining whether request is eligible for retry; status code: {grpcStatus.StatusCode}, request type: {grpcRequest?.GetType()}, attemptNumber: {attemptNumber}, maxAttempts: {MaxAttempts}");
         if (attemptNumber > MaxAttempts)
         {
             _logger.LogDebug($"Exceeded max retry count ({MaxAttempts})");

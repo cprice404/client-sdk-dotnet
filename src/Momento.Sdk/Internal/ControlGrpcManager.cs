@@ -65,7 +65,7 @@ internal class ControlClientWithMiddleware : IControlClient
         TRequest request,
         CallOptions callOptions,
         Func<TRequest, CallOptions, AsyncUnaryCall<TResponse>> continuation
-    )
+    ) where TRequest : class where TResponse : class
     {
         Func<TRequest, CallOptions, Task<MiddlewareResponseState<TResponse>>> continuationWithMiddlewareResponseState = (r, o) =>
         {
