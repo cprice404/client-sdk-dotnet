@@ -17,6 +17,9 @@ public class SimpleCacheDataTest
         client = fixture.Client;
         authProvider = fixture.AuthProvider;
         cacheName = fixture.CacheName;
+
+        Console.WriteLine($"\n\n\nUSING CACHE NAME: '{cacheName}'\n\n\n");
+
         defaultTtl = fixture.DefaultTtl;
     }
 
@@ -115,7 +118,7 @@ public class SimpleCacheDataTest
         string key = Utils.NewGuidString();
         string value = Utils.NewGuidString();
         var setResponse = await client.SetAsync(cacheName, key, value);
-        Assert.True(setResponse is CacheSetResponse.Success);
+        Assert.True(setResponse is CacheSetResponse.Success, $"Expected a Miss but got: {setResponse}");
 
         CacheGetResponse response = await client.GetAsync(cacheName, key);
         Assert.True(response is CacheGetResponse.Hit);
@@ -238,7 +241,7 @@ public class SimpleCacheDataTest
 
         // Check deleted
         getResponse = await client.GetAsync(cacheName, key);
-        Assert.True(getResponse is CacheGetResponse.Miss);
+        Assert.True(getResponse is CacheGetResponse.Miss, $"Expected a Miss but got: {getResponse}");
     }
 
     [Theory]
