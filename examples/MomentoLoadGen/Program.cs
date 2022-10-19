@@ -410,6 +410,8 @@ If you have questions or need help experimenting further, please reach out to us
             using (ILoggerFactory loggerFactory = InitializeLogging())
             {
 
+                var maxConcurrentRequests = 5000;
+
                 CsharpLoadGeneratorOptions loadGeneratorOptions = new CsharpLoadGeneratorOptions(
                   ///
                   /// Each time the load generator has executed this many requests, it will
@@ -430,7 +432,7 @@ If you have questions or need help experimenting further, please reach out to us
                   /// is more contention between the concurrent function calls, client-side latencies
                   /// may increase.
                   ///
-                  numberOfConcurrentRequests: 50,
+                  numberOfConcurrentRequests: maxConcurrentRequests,
                   ///
                   /// Sets an upper bound on how many requests per second will be sent to the server.
                   /// Momento caches have a default throttling limit of 100 requests per second,
@@ -451,7 +453,8 @@ If you have questions or need help experimenting further, please reach out to us
                 /// our pre-built configurations that are optimized for Laptop vs InRegion environments,
                 /// or build your own.
                 ///
-                IConfiguration config = Configurations.Laptop.Latest(loggerFactory);
+                IConfiguration origConfig = Configurations.Laptop.Latest(loggerFactory);
+                IConfiguration config = origConfig.WithTransportStrategy(origConfig.TransportStrategy.WithMaxConcurrentRequests(maxConcurrentRequests));
 
                 CsharpLoadGenerator loadGenerator = new CsharpLoadGenerator(
                     config,
