@@ -142,5 +142,12 @@ public class AdvancedExamples {
         using (SimpleCacheClient client = new SimpleCacheClient(eagerConnectionConfig, authProvider, defaultTtl)) {
             Console.WriteLine("Successfully created a momento client with eager connection");
         }
+
+        var grpcConfig = config.TransportStrategy.GrpcConfig.WithMinNumGrpcChannels(4);
+        var transportStrategy = config.TransportStrategy
+            .WithEagerConnectionTimeout(TimeSpan.FromSeconds(20))
+            .WithGrpcConfig(grpcConfig);
+        config = config.WithTransportStrategy(transportStrategy);
+        
     }
 }
