@@ -8,8 +8,8 @@ using Momento.Sdk.Responses;
 
 public class Driver
 {
-    private static readonly string AUTH_TOKEN_ENV_VAR = "TEST_AUTH_TOKEN";
-    private static readonly string CACHE_NAME_ENV_VAR = "TEST_CACHE_NAME";
+    private static readonly string AUTH_TOKEN_ENV_VAR = "MOMENTO_AUTH_TOKEN";
+    private static readonly string CACHE_NAME_ENV_VAR = "MOMENTO_CACHE_NAME";
     private static readonly ILogger _logger;
     private static readonly ILoggerFactory _loggerFactory;
 
@@ -198,12 +198,11 @@ public class Driver
     private static string ReadCacheName()
     {
         var cacheName = System.Environment.GetEnvironmentVariable(CACHE_NAME_ENV_VAR);
-        if (cacheName is null)
+        if (cacheName is not null)
         {
-            Console.Write($"Cache name not detected in environment variable {CACHE_NAME_ENV_VAR}. Enter cache name here: ");
-            cacheName = Console.ReadLine()!.Trim();
+            return cacheName;
         }
-        return cacheName;
+        return "default-cache";
     }
 
     private static async Task EnsureCacheExistsAsync(ISimpleCacheClient client, string cacheName)
