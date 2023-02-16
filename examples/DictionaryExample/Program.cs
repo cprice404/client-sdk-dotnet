@@ -90,20 +90,32 @@ public class Driver
             cacheName: cacheName,
             dictionaryName: dictionaryName,
             fields: batchFieldList);
-        if (getBatchResponse is CacheDictionaryGetFieldsResponse.Hit responses)
+        if (getBatchResponse is CacheDictionaryGetFieldsResponse.Hit hitResponse)
         {
+            var dictionary = hitResponse.ValueDictionaryStringString;
             _logger.LogInformation("");
-            _logger.LogInformation("Displaying the result of dictionary get batch:");
-            foreach ((var batchField, var response) in batchFieldList.Zip(responses.Responses))
+            _logger.LogInformation($"Accessing an entry of {dictionaryName} using a native Dictionary: {dictionary["field1"]}");
+
+            _logger.LogInformation("");
+            _logger.LogInformation("Displaying the results of dictionary get fields:");
+            dictionary.ToList().ForEach(kv =>
+                _logger.LogInformation($"- field={kv.Key}; value={kv.Value}"));
+
+            // if you prefer to iterate over each field in the original request,
+            // you can use the .Responses property
+            _logger.LogInformation("");
+            _logger.LogInformation("Displaying the result of dictionary get fields, one field at a time:");
+
+            foreach (var response in hitResponse.Responses)
             {
                 status = "MISS";
                 value = "<NONE; field was a MISS>";
-                if (response is CacheDictionaryGetFieldResponse.Hit hit_)
+                if (response is CacheDictionaryGetFieldResponse.Hit hit)
                 {
                     status = "HIT";
-                    value = hit_.ValueString;
+                    value = hit.ValueString;
                 }
-                _logger.LogInformation($"- field={batchField}; status={status}; value={value}");
+                _logger.LogInformation($"- field={response.FieldString}; status={status}; value={value}");
             }
         }
         else if (getBatchResponse is CacheDictionaryGetFieldsResponse.Error getBatchError)
