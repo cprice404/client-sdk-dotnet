@@ -607,6 +607,9 @@ public interface ICacheClient : IDisposable
     /// <inheritdoc cref="ListRemoveValueAsync(string, string, byte[])"/>
     public Task<CacheListRemoveValueResponse> ListRemoveValueAsync(string cacheName, string listName, string value);
 
+    public Task<CacheListRetainResponse> ListRetainAsync(string cacheName, string listName, int? startIndex = null,
+        int? endIndex = null);
+
     /// <summary>
     /// Calculate the length of a list in the cache.
     ///

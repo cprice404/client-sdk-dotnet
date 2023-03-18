@@ -1081,6 +1081,12 @@ public class CacheClient : ICacheClient
     }
 
     /// <inheritdoc />
+    public async Task<CacheListRetainResponse> ListRetainAsync(string cacheName, string listName, int? startIndex = null, int? endIndex = null)
+    {
+        
+    }
+
+    /// <inheritdoc />
     public async Task<CacheListRemoveValueResponse> ListRemoveValueAsync(string cacheName, string listName, byte[] value)
     {
         try
