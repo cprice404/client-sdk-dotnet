@@ -106,6 +106,37 @@ public class AdvancedExamples {
             // Also not considred fatal.
             Console.WriteLine($"Error deleting key: {deleteKeyError.Message}!");
         }
+        
+        
+        Console.WriteLine("TESTING BATCH OPERATIONS");
+
+        var batchValues = new Dictionary<string, string>()
+        {
+            {"foo", "FOO"},
+            {"bar", "BAR"},
+            {"baz", "BAZ"}
+        };
+        var setBatchResponse = await client.SetBatchAsync(CACHE_NAME, batchValues, TimeSpan.FromSeconds(600));
+        if (setBatchResponse is CacheSetBatchResponse.Success setBatchSuccess)
+        {
+            Console.WriteLine($"Executed client-side batch set: {setBatchSuccess}");
+        }
+        else
+        {
+            throw new Exception($"Something went wrong with client-side batch set: {setBatchResponse}");
+        }
+
+        var getBatchResponse = await client.GetBatchAsync(CACHE_NAME, batchValues.Keys);
+        if (getBatchResponse is CacheGetBatchResponse.Success getBatchSuccess)
+        {
+            Console.WriteLine($"Executed client-side batch get: {String.Join(",", getBatchSuccess.ValueStrings)}");
+        }
+        else
+        {
+            throw new Exception($"Something went wrong with client-side batch get: {getBatchResponse}");
+        }
+
+
     }
 
     public static async Task DeleteCacheExample(ICacheClient client) {
