@@ -16,6 +16,6 @@ public abstract record DisposableToken
         (CacheRole Role, CacheSelector CacheSelector, CacheItemSelector CacheItemSelector) : CachePermission(Role,
             CacheSelector);
 
-    public record TopicPermission() : DisposableTokenPermission;
+    public record TopicPermission(TopicRole Role, CacheSelector CacheSelector, TopicSelector TopicSelector) : DisposableTokenPermission;
 }
 

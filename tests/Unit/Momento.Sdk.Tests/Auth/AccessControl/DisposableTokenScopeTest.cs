@@ -12,33 +12,7 @@ public class DisposableTokenScopeTest
     [Fact]
     public void DisposableTokenScopes_CacheReadWrite()
     {
-        // CacheSelector.ByName("foo").Should().BeEquivalentTo(CacheSelector.ByName("foo"));
-        // // Assert.Equal(CacheSelector.ByName("foo"), CacheSelector.ByName("bar"));
-        // CacheItemSelector.AllCacheItems.Should().BeEquivalentTo(CacheItemSelector.AllCacheItems);
-        // //
-        // // new DisposableTokenPermission.CachePermission(CacheRole.ReadOnly, CacheSelector.ByName("taco"))
-        // //     .Should().BeEquivalentTo(
-        // //         new DisposableTokenPermission.CachePermission(CacheRole.ReadOnly, CacheSelector.ByName("burrito")),
-        // //         o => o.ComparingRecordsByValue());
-        // new DisposableTokenPermission.CachePermission(CacheRole.ReadOnly, CacheSelector.ByName("taco"))
-        //     .Should().BeEquivalentTo(
-        //         new DisposableTokenPermission.CachePermission(CacheRole.ReadOnly, CacheSelector.ByName("burrito")));
-        
-        //
-        // Assert.Equal(
-        //     new DisposableTokenPermission.CachePermission(CacheRole.ReadOnly, CacheSelector.ByName("taco")),
-        //     new DisposableTokenPermission.CachePermission(CacheRole.ReadOnly, CacheSelector.ByName("burrito"))
-        // );
-
         var scope = DisposableTokenScopes.CacheReadWrite("mycache");
-        // Assert.Equal(scope, new DisposableTokenScope(new List<DisposableTokenPermission>
-        // {
-        //     new DisposableTokenPermission.CacheItemPermission(
-        //         CacheRole.ReadWrite,
-        //         CacheSelector.ByName("mycache2"),
-        //         CacheItemSelector.AllCacheItems
-        //     )
-        // }));
         scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
         {
             new DisposableToken.CacheItemPermission(
@@ -46,360 +20,390 @@ public class DisposableTokenScopeTest
                 CacheSelector.ByName("mycache"),
                 CacheItemSelector.AllCacheItems
             )
-        })
-            // , 
-            // // o => o.ComparingByMembers<DisposableTokenScope>()
-            // o => o
-            );
+        }));
+        scope = DisposableTokenScopes.CacheReadWrite(CacheSelector.AllCaches);
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.AllCaches,
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheReadWrite(CacheSelector.ByName("mycache"));
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.AllCacheItems
+            )
+        }));
     }
     
-    //
-    //   describe('should support assignment from DisposableTokenScope factory functions', () => {
-  //   it('cacheReadWrite', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.cacheReadWrite('mycache');
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.ReadWrite, cache: 'mycache'}],
-  //     });
-  //     scope = DisposableTokenScopes.cacheReadWrite(AllCaches);
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.ReadWrite, cache: AllCaches}],
-  //     });
-  //     scope = DisposableTokenScopes.cacheReadWrite({name: 'mycache'});
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.ReadWrite, cache: {name: 'mycache'}}],
-  //     });
-  //   });
-  //   it('cacheReadOnly', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.cacheReadOnly('mycache');
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.ReadOnly, cache: 'mycache'}],
-  //     });
-  //     scope = DisposableTokenScopes.cacheReadOnly(AllCaches);
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.ReadOnly, cache: AllCaches}],
-  //     });
-  //     scope = DisposableTokenScopes.cacheReadOnly({name: 'mycache'});
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.ReadOnly, cache: {name: 'mycache'}}],
-  //     });
-  //   });
-  //   it('cacheWriteOnly', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.cacheWriteOnly('mycache');
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.WriteOnly, cache: 'mycache'}],
-  //     });
-  //     scope = DisposableTokenScopes.cacheWriteOnly(AllCaches);
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.WriteOnly, cache: AllCaches}],
-  //     });
-  //     scope = DisposableTokenScopes.cacheWriteOnly({name: 'mycache'});
-  //     expect(scope).toEqual({
-  //       permissions: [{role: CacheRole.WriteOnly, cache: {name: 'mycache'}}],
-  //     });
-  //   });
-  //
-  //   it('cacheKeyReadOnly', () => {
-  //     let scope: DisposableTokenScope = DisposableTokenScopes.cacheKeyReadOnly(
-  //       'mycache',
-  //       'mykey'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.ReadOnly, cache: 'mycache', item: 'mykey'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyReadOnly(AllCaches, 'mykey');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.ReadOnly, cache: AllCaches, item: 'mykey'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyReadOnly(
-  //       {name: 'mycache'},
-  //       'mykey'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.ReadOnly, cache: {name: 'mycache'}, item: 'mykey'},
-  //       ],
-  //     });
-  //   });
-  //
-  //   it('cacheKeyReadWrite', () => {
-  //     let scope: DisposableTokenScope = DisposableTokenScopes.cacheKeyReadWrite(
-  //       'mycache',
-  //       'mykey'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.ReadWrite, cache: 'mycache', item: 'mykey'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyReadWrite(AllCaches, 'mykey');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.ReadWrite, cache: AllCaches, item: 'mykey'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyReadWrite(
-  //       {name: 'mycache'},
-  //       'mykey'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.ReadWrite, cache: {name: 'mycache'}, item: 'mykey'},
-  //       ],
-  //     });
-  //   });
-  //
-  //   it('cacheKeyWriteOnly', () => {
-  //     let scope: DisposableTokenScope = DisposableTokenScopes.cacheKeyWriteOnly(
-  //       'mycache',
-  //       'mykey'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.WriteOnly, cache: 'mycache', item: 'mykey'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyWriteOnly(AllCaches, 'mykey');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: CacheRole.WriteOnly, cache: AllCaches, item: 'mykey'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyWriteOnly(
-  //       {name: 'mycache'},
-  //       'mykey'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.WriteOnly,
-  //           cache: {name: 'mycache'},
-  //           item: 'mykey',
-  //         },
-  //       ],
-  //     });
-  //   });
-  //
-  //   it('cacheKeyPrefixReadOnly', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.cacheKeyPrefixReadOnly('mycache', 'mykeyprefix');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.ReadOnly,
-  //           cache: 'mycache',
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyPrefixReadOnly(
-  //       AllCaches,
-  //       'mykeyprefix'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.ReadOnly,
-  //           cache: AllCaches,
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyPrefixReadOnly(
-  //       {name: 'mycache'},
-  //       'mykeyprefix'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.ReadOnly,
-  //           cache: {name: 'mycache'},
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //   });
-  //
-  //   it('cacheKeyPrefixReadWrite', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.cacheKeyPrefixReadWrite('mycache', 'mykeyprefix');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.ReadWrite,
-  //           cache: 'mycache',
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyPrefixReadWrite(
-  //       AllCaches,
-  //       'mykeyprefix'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.ReadWrite,
-  //           cache: AllCaches,
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyPrefixReadWrite(
-  //       {name: 'mycache'},
-  //       'mykeyprefix'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.ReadWrite,
-  //           cache: {name: 'mycache'},
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //   });
-  //
-  //   it('cacheKeyPrefixWriteOnly', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.cacheKeyPrefixWriteOnly('mycache', 'mykeyprefix');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.WriteOnly,
-  //           cache: 'mycache',
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyPrefixWriteOnly(
-  //       AllCaches,
-  //       'mykeyprefix'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.WriteOnly,
-  //           cache: AllCaches,
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.cacheKeyPrefixWriteOnly(
-  //       {name: 'mycache'},
-  //       'mykeyprefix'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: CacheRole.WriteOnly,
-  //           cache: {name: 'mycache'},
-  //           item: {keyPrefix: 'mykeyprefix'},
-  //         },
-  //       ],
-  //     });
-  //   });
-  //
-  //   it('topicSubscribeOnly', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.topicSubscribeOnly('mycache', 'mytopic');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: TopicRole.SubscribeOnly, cache: 'mycache', topic: 'mytopic'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.topicSubscribeOnly(AllCaches, AllTopics);
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: TopicRole.SubscribeOnly, cache: AllCaches, topic: AllTopics},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.topicSubscribeOnly(
-  //       {name: 'mycache'},
-  //       {name: 'mytopic'}
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: TopicRole.SubscribeOnly,
-  //           cache: {name: 'mycache'},
-  //           topic: {name: 'mytopic'},
-  //         },
-  //       ],
-  //     });
-  //   });
-  //   it('topicPublishOnly', () => {
-  //     let scope: DisposableTokenScope = DisposableTokenScopes.topicPublishOnly(
-  //       'mycache',
-  //       'mytopic'
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: TopicRole.PublishOnly, cache: 'mycache', topic: 'mytopic'},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.topicPublishOnly(AllCaches, AllTopics);
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {role: TopicRole.PublishOnly, cache: AllCaches, topic: AllTopics},
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.topicPublishOnly(
-  //       {name: 'mycache'},
-  //       {name: 'mytopic'}
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: TopicRole.PublishOnly,
-  //           cache: {name: 'mycache'},
-  //           topic: {name: 'mytopic'},
-  //         },
-  //       ],
-  //     });
-  //   });
-  //   it('topicPublishSubscribe', () => {
-  //     let scope: DisposableTokenScope =
-  //       DisposableTokenScopes.topicPublishSubscribe('mycache', 'mytopic');
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: TopicRole.PublishSubscribe,
-  //           cache: 'mycache',
-  //           topic: 'mytopic',
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.topicPublishSubscribe(AllCaches, AllTopics);
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: TopicRole.PublishSubscribe,
-  //           cache: AllCaches,
-  //           topic: AllTopics,
-  //         },
-  //       ],
-  //     });
-  //     scope = DisposableTokenScopes.topicPublishSubscribe(
-  //       {name: 'mycache'},
-  //       {name: 'mytopic'}
-  //     );
-  //     expect(scope).toEqual({
-  //       permissions: [
-  //         {
-  //           role: TopicRole.PublishSubscribe,
-  //           cache: {name: 'mycache'},
-  //           topic: {name: 'mytopic'},
-  //         },
-  //       ],
-  //     });
-  //   });
-  // })
-    //
+    [Fact]
+    public void DisposableTokenScopes_CacheReadOnly()
+    {
+        var scope = DisposableTokenScopes.CacheReadOnly("mycache");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+        scope = DisposableTokenScopes.CacheReadOnly(CacheSelector.AllCaches);
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.AllCaches,
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheReadOnly(CacheSelector.ByName("mycache"));
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_CacheWriteOnly()
+    {
+        var scope = DisposableTokenScopes.CacheWriteOnly("mycache");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+        scope = DisposableTokenScopes.CacheWriteOnly(CacheSelector.AllCaches);
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.AllCaches,
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheWriteOnly(CacheSelector.ByName("mycache"));
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.AllCacheItems
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_CacheKeyReadWrite()
+    {
+        var scope = DisposableTokenScopes.CacheKeyReadWrite("mycache", "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+        scope = DisposableTokenScopes.CacheKeyReadWrite(CacheSelector.AllCaches, "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.AllCaches,
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheKeyReadWrite(CacheSelector.ByName("mycache"), "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_CacheKeyReadOnly()
+    {
+        var scope = DisposableTokenScopes.CacheKeyReadOnly("mycache", "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+        scope = DisposableTokenScopes.CacheKeyReadOnly(CacheSelector.AllCaches, "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.AllCaches,
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheKeyReadOnly(CacheSelector.ByName("mycache"), "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_CacheKeyWriteOnly()
+    {
+        var scope = DisposableTokenScopes.CacheKeyWriteOnly("mycache", "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+        scope = DisposableTokenScopes.CacheKeyWriteOnly(CacheSelector.AllCaches, "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.AllCaches,
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheKeyWriteOnly(CacheSelector.ByName("mycache"), "mykey");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKey("mykey")
+            )
+        }));
+    }
+
+    [Fact]
+    public void DisposableTokenScopes_CacheKeyPrefixReadWrite()
+    {
+        var scope = DisposableTokenScopes.CacheKeyPrefixReadWrite("mycache", "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+        scope = DisposableTokenScopes.CacheKeyPrefixReadWrite(CacheSelector.AllCaches, "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.AllCaches,
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheKeyPrefixReadWrite(CacheSelector.ByName("mycache"), "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadWrite,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_CacheKeyPrefixReadOnly()
+    {
+        var scope = DisposableTokenScopes.CacheKeyPrefixReadOnly("mycache", "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+        scope = DisposableTokenScopes.CacheKeyPrefixReadOnly(CacheSelector.AllCaches, "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.AllCaches,
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheKeyPrefixReadOnly(CacheSelector.ByName("mycache"), "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.ReadOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_CacheKeyPrefixWriteOnly()
+    {
+        var scope = DisposableTokenScopes.CacheKeyPrefixWriteOnly("mycache", "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+        scope = DisposableTokenScopes.CacheKeyPrefixWriteOnly(CacheSelector.AllCaches, "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.AllCaches,
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.CacheKeyPrefixWriteOnly(CacheSelector.ByName("mycache"), "mykeyprefix");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.CacheItemPermission(
+                CacheRole.WriteOnly,
+                CacheSelector.ByName("mycache"),
+                CacheItemSelector.ByKeyPrefix("mykeyprefix")
+            )
+        }));
+    }
+    
+    
+    [Fact]
+    public void DisposableTokenScopes_TopicPublishSubscribe()
+    {
+        var scope = DisposableTokenScopes.TopicPublishSubscribe("mycache", "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.PublishSubscribe,
+                CacheSelector.ByName("mycache"),
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+        scope = DisposableTokenScopes.TopicPublishSubscribe(CacheSelector.AllCaches, "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.PublishSubscribe,
+                CacheSelector.AllCaches,
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.TopicPublishSubscribe(CacheSelector.ByName("mycache"), "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.PublishSubscribe,
+                CacheSelector.ByName("mycache"),
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+    }
+    
+    
+    [Fact]
+    public void DisposableTokenScopes_TopicSubscribeOnly()
+    {
+        var scope = DisposableTokenScopes.TopicSubscribeOnly("mycache", "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.SubscribeOnly,
+                CacheSelector.ByName("mycache"),
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+        scope = DisposableTokenScopes.TopicSubscribeOnly(CacheSelector.AllCaches, "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.SubscribeOnly,
+                CacheSelector.AllCaches,
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.TopicSubscribeOnly(CacheSelector.ByName("mycache"), "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.SubscribeOnly,
+                CacheSelector.ByName("mycache"),
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+    }
+    
+    [Fact]
+    public void DisposableTokenScopes_TopicPublishOnly()
+    {
+        var scope = DisposableTokenScopes.TopicPublishOnly("mycache", "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.PublishOnly,
+                CacheSelector.ByName("mycache"),
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+        scope = DisposableTokenScopes.TopicPublishOnly(CacheSelector.AllCaches, "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.PublishOnly,
+                CacheSelector.AllCaches,
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+        
+        scope = DisposableTokenScopes.TopicPublishOnly(CacheSelector.ByName("mycache"), "mytopic");
+        scope.Should().BeEquivalentTo(new DisposableTokenScope(new List<DisposableTokenPermission>
+        {
+            new DisposableToken.TopicPermission(
+                TopicRole.PublishOnly,
+                CacheSelector.ByName("mycache"),
+                TopicSelector.ByName("mytopic")
+            )
+        }));
+    }
 }
