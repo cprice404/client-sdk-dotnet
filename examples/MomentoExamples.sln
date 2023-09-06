@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocExampleApis", "DocExampl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocExampleFiles", "DocExampleFiles\DocExampleFiles.csproj", "{89667600-2BBC-4104-B046-D2A46254DEBF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momento.Sdk", "..\src\Momento.Sdk\Momento.Sdk.csproj", "{C1012E58-2B55-4AE4-9E8D-F479CA8772F7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,10 @@ Global
 		{89667600-2BBC-4104-B046-D2A46254DEBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89667600-2BBC-4104-B046-D2A46254DEBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89667600-2BBC-4104-B046-D2A46254DEBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1012E58-2B55-4AE4-9E8D-F479CA8772F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1012E58-2B55-4AE4-9E8D-F479CA8772F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1012E58-2B55-4AE4-9E8D-F479CA8772F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1012E58-2B55-4AE4-9E8D-F479CA8772F7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
