@@ -78,11 +78,20 @@ using (TopicClient topicClient = new TopicClient(topicConfiguration, new EnvMome
     Console.WriteLine("WE GOT A CLIENT");
 
     var numTopics = 20;
-    
+
     var subscriptionResponses = await Task.WhenAll(
         Enumerable.Range(1, numTopics).Select(i =>
             topicClient.SubscribeAsync(CACHE_NAME, $"topic{i}")
-                .ContinueWith(r => Tuple.Create(i, r.Result))));
+                .ContinueWith(r => Tuple.Create(i, r.Result))).ToList());
+
+    var backgroundPrinter = Task.Run(async () =>
+    {
+        foreach (var i in Enumerable.Range(0, 100))
+        {
+            Console.WriteLine($"Background printer says hello for the {i}th time");
+            await Task.Delay(100);
+        }
+    });
 
     var subscriptions = subscriptionResponses.Select(t =>
     {
@@ -93,18 +102,39 @@ using (TopicClient topicClient = new TopicClient(topicConfiguration, new EnvMome
         }
 
         throw new Exception($"Got an unexpected subscription response: {subscriptionResponse}");
-    });
-    
-    Console.WriteLine("All subscriptions created!");
+    }).ToList();
 
+    Console.WriteLine("All subscriptions created!");
+    //
+    // Task.Run(async () =>
+    // {
+    //     subscriptions[0]
+    // })
+
+//
     var subscribers = subscriptions.Select(t => Task.Run(async () =>
     {
         var (topicNum, subscription) = t;
+        // var enumerator = subscription.GetAsyncEnumerator();
+        // while (await enumerator.MoveNextAsync())
+        // {
+        //     Console.WriteLine($"Received message on topic {topicNum}: '{enumerator.Current}'");
+        // }
+
+        int messageCount = 0;
         await foreach (var message in subscription)
         {
-            Console.WriteLine($"Received message on topic {topicNum}: '{message}'");
+            switch (message)
+            {
+                case TopicMessage.Text:
+                    Console.WriteLine($"Received a text message on topic {topicNum}: '{message}'");
+                    messageCount++;
+                    break;
+            }
         }
-    }));
+
+        return messageCount;
+    })).ToList();
     
     Console.WriteLine("Created subscriber tasks");
 
@@ -126,14 +156,15 @@ using (TopicClient topicClient = new TopicClient(topicConfiguration, new EnvMome
     
     Console.WriteLine("Cancelling subscriptions!");
     
-    // foreach (var subscriptionTuple in subscriptions)
-    // {
-    //     var (topicNum, subscription) = subscriptionTuple;
-    //     subscription.Dispose();
-    // }
+    foreach (var subscriptionTuple in subscriptions)
+    {
+        var (topicNum, subscription) = subscriptionTuple;
+        subscription.Dispose();
+    }
     
     Console.WriteLine("Awaiting subscribers");
-    await Task.WhenAll(subscribers);
+    var subscriberResults = await Task.WhenAll(subscribers);
+    var numMessagesReceived = subscriberResults.Sum();
     
-    Console.WriteLine("Subscribers completed");
+    Console.WriteLine($"Subscribers completed; received: {numMessagesReceived} messages");
 }
