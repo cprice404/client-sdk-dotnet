@@ -17,6 +17,12 @@ builder.Services.AddDistributedMegaCache(configuration =>
     logger.LogInformation($"Configuring distributed mega cache: {configuration}");
 });
 
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 10;
+    options.TrackStatistics = true;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
